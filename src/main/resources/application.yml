@@ -2,7 +2,7 @@ spring:
   banner:
     location: "classpath:banner.txt"
   application:
-    name: cmetal-be
+    name: cmetal-gestionale-be
 
   datasource:
     url: ${DATASOURCE_URL}
@@ -27,8 +27,7 @@ spring:
     time-zone: Europe/Rome
 
 server:
-  address: 0.0.0.0
-  port: ${SERVER_PORT:8080}
+  port: ${PORT:8080}
 
 
 logging:
@@ -40,11 +39,9 @@ logging:
 
 jwt:
   secret: ${JWT_SECRET}
-  expiration: 86400000
+  expiration: 604800000
 
 app:
-  images:
-    path: ${IMAGES_PATH}
   cors:
     allowed-origins: ${CORS_ALLOWED}
 
