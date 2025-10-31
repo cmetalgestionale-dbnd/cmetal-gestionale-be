@@ -15,7 +15,9 @@ spring:
       idle-timeout: ${HIKARI_IDLE_TIMEOUT:10000}
       max-lifetime: ${HIKARI_MAX_LIFETIME:1000}
       connection-timeout: ${HIKARI_CONNECTION_TIMEOUT:20000}
-
+      data-source-properties:
+              cachePrepStmts: false
+      
   jpa:
     hibernate:
       ddl-auto: none
@@ -28,7 +30,6 @@ spring:
 
 server:
   port: ${PORT:8080}
-
 
 logging:
   level:

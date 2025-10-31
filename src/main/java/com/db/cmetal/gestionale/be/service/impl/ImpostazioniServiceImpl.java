@@ -1,30 +1,23 @@
 package com.db.cmetal.gestionale.be.service.impl;
 
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.db.cmetal.gestionale.be.entity.Impostazioni;
 import com.db.cmetal.gestionale.be.repository.ImpostazioniRepository;
 import com.db.cmetal.gestionale.be.service.ImpostazioniService;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-
 @Service
+@Transactional
 public class ImpostazioniServiceImpl implements ImpostazioniService {
 
     private final ImpostazioniRepository repo;
-    private final Map<String, Impostazioni> cache = new ConcurrentHashMap<>();
 
     public ImpostazioniServiceImpl(ImpostazioniRepository repo) {
         this.repo = repo;
-        refreshCache();
-    }
-
-    /** Ricarica tutte le impostazioni dal DB nella cache */
-    public void refreshCache() {
-        repo.findAll().forEach(i -> cache.put(i.getChiave(), i));
     }
 
     @Override
@@ -34,14 +27,12 @@ public class ImpostazioniServiceImpl implements ImpostazioniService {
 
     @Override
     public Optional<Impostazioni> findByChiave(String chiave) {
-        return Optional.ofNullable(cache.get(chiave));
+        return repo.findById(chiave);
     }
 
     @Override
     public Impostazioni save(Impostazioni i) {
-        Impostazioni saved = repo.save(i);
-        cache.put(i.getChiave(), saved);
-        return saved;
+        return repo.save(i);
     }
 
     @Override
@@ -49,9 +40,7 @@ public class ImpostazioniServiceImpl implements ImpostazioniService {
         return repo.findById(chiave)
             .map(i -> {
                 i.setValore(valore);
-                Impostazioni saved = repo.save(i);
-                cache.put(chiave, saved);
-                return saved;
+                return repo.save(i);
             })
             .orElse(null);
     }
@@ -59,7 +48,9 @@ public class ImpostazioniServiceImpl implements ImpostazioniService {
     @Override
     public Integer getIntValue(String chiave, int defaultValue) {
         try {
-            return Integer.parseInt(cache.get(chiave).getValore());
+            return Integer.parseInt(repo.findById(chiave)
+                    .map(Impostazioni::getValore)
+                    .orElseThrow());
         } catch (Exception e) {
             return defaultValue;
         }
@@ -68,19 +59,22 @@ public class ImpostazioniServiceImpl implements ImpostazioniService {
     @Override
     public boolean getBooleanValue(String chiave, boolean defaultValue) {
         try {
-            return !"0".equals(cache.get(chiave).getValore());
-        } catch (Exception e) {
-            return defaultValue;
-        }
-    }
-    
-    @Override
-    public Double getDoubleValue(String chiave, double defaultValue) {
-        try {
-            return Double.parseDouble(cache.get(chiave).getValore());
+            return !"0".equals(repo.findById(chiave)
+                    .map(Impostazioni::getValore)
+                    .orElse("0"));
         } catch (Exception e) {
             return defaultValue;
         }
     }
 
+    @Override
+    public Double getDoubleValue(String chiave, double defaultValue) {
+        try {
+            return Double.parseDouble(repo.findById(chiave)
+                    .map(Impostazioni::getValore)
+                    .orElseThrow());
+        } catch (Exception e) {
+            return defaultValue;
+        }
+    }
 }
