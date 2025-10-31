@@ -8,22 +8,25 @@ spring:
     url: ${DATASOURCE_URL}
     username: ${DATASOURCE_USERNAME}
     password: ${DATASOURCE_PASSWORD}
-    driver-class-name: ${DATASOURCE_DRIVER}
+    driver-class-name: ${DATASOURCE_DRIVER:org.postgresql.Driver}
     hikari:
-      maximum-pool-size: ${HIKARI_MAX_POOL_SIZE:10}
-      minimum-idle: ${HIKARI_MIN_IDLE:10}
-      idle-timeout: ${HIKARI_IDLE_TIMEOUT:10000}
-      max-lifetime: ${HIKARI_MAX_LIFETIME:1000}
+      maximum-pool-size: ${HIKARI_MAX_POOL_SIZE:5}
+      minimum-idle: ${HIKARI_MIN_IDLE:2}
+      idle-timeout: ${HIKARI_IDLE_TIMEOUT:30000}
+      max-lifetime: ${HIKARI_MAX_LIFETIME:300000}
       connection-timeout: ${HIKARI_CONNECTION_TIMEOUT:20000}
+      auto-commit: ${HIKARI_AUTO_COMMIT:true}
       data-source-properties:
-              cachePrepStmts: false
-      
+        prepareThreshold: ${HIKARI_PREPARE_THRESHOLD:0}
+        cachePrepStmts: ${HIKARI_CACHE_PREP_STMTS:false}
+        useServerPrepStmts: ${HIKARI_USE_SERVER_PREP_STMTS:false}
+
   jpa:
     hibernate:
       ddl-auto: none
-      default_schema: ${DEFAULT_SCHEMA}
-    show-sql: true
-    database-platform: ${HIBERNATE_DIALECT}
+      default_schema: ${DEFAULT_SCHEMA:public}
+    show-sql: ${SHOW_SQL:true}
+    database-platform: ${HIBERNATE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
 
   jackson:
     time-zone: Europe/Rome
@@ -48,5 +51,3 @@ app:
 
 frontend:
   url: ${FRONTEND_URL}
-
-
