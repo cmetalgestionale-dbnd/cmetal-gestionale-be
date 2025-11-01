@@ -46,6 +46,7 @@ jwt:
   expiration: 604800000
 
 app:
+  production: ${IS_PRODUCTION:false} 
   cors:
     allowed-origins: ${CORS_ALLOWED}
 
