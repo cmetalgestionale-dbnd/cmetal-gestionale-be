@@ -42,7 +42,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public ResponseEntity<?> login(LoginRequest request, HttpServletResponse response) {
         try {
-            // Autenticazione
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
             );
@@ -57,16 +56,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Utente disabilitato");
             }
 
-            // Genera token JWT
             String token = jwtService.generateToken(utente);
             long maxAgeSeconds = jwtService.getJwtExpirationMillis() / 1000L;
 
-            // Config cookie
             String domain = IS_PRODUCTION ? ".castellanometal.com" : null;
             boolean secure = IS_PRODUCTION;
             String sameSite = IS_PRODUCTION ? "None" : "Lax";
 
-            // Costruisci header cookie
             StringBuilder cookieBuilder = new StringBuilder();
             cookieBuilder.append(Constants.COOKIE_TOKEN)
                     .append("=")
@@ -81,21 +77,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
             response.setHeader("Set-Cookie", cookieBuilder.toString());
 
-            // Restituisce info utente corrente
-            CurrentUserDTO dto = CurrentUserDTO.fromUtente(
-                    Constants.getRoleName(utente.getLivello()),
-                    utente.getId(),
-                    utente.getUsername(),
-                    utente.getNome(),
-                    utente.getCognome()
-            );
+            // 🔹 Redireziona direttamente il browser
+            response.setStatus(HttpServletResponse.SC_FOUND); // 302
+            response.setHeader("Location", "https://app.castellanometal.com/");
 
-            return ResponseEntity.ok(dto);
+            return ResponseEntity.status(HttpStatus.FOUND).build();
 
         } catch (BadCredentialsException ex) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Credenziali non valide");
         }
     }
+
 
     @Override
     public ResponseEntity<?> logout(HttpServletResponse response) {
