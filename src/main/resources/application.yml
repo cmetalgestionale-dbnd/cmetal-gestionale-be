@@ -10,22 +10,24 @@ spring:
     password: ${DATASOURCE_PASSWORD}
     driver-class-name: ${DATASOURCE_DRIVER:org.postgresql.Driver}
     hikari:
-      maximum-pool-size: ${HIKARI_MAX_POOL_SIZE:5}
+      maximum-pool-size: ${HIKARI_MAX_POOL_SIZE:10}
       minimum-idle: ${HIKARI_MIN_IDLE:2}
       idle-timeout: ${HIKARI_IDLE_TIMEOUT:30000}
-      max-lifetime: ${HIKARI_MAX_LIFETIME:300000}
+      max-lifetime: ${HIKARI_MAX_LIFETIME:600000}
       connection-timeout: ${HIKARI_CONNECTION_TIMEOUT:20000}
       auto-commit: ${HIKARI_AUTO_COMMIT:true}
       data-source-properties:
-        prepareThreshold: ${HIKARI_PREPARE_THRESHOLD:0}
-        cachePrepStmts: ${HIKARI_CACHE_PREP_STMTS:false}
-        useServerPrepStmts: ${HIKARI_USE_SERVER_PREP_STMTS:false}
+        cachePrepStmts: ${HIKARI_CACHE_PREP_STMTS:true}
+        prepStmtCacheSize: ${HIKARI_PREP_STMT_CACHE_SIZE:250}
+        prepStmtCacheSqlLimit: ${HIKARI_PREP_STMT_SQL_LIMIT:2048}
+        useServerPrepStmts: ${HIKARI_USE_SERVER_PREP_STMTS:true}
+        prepareThreshold: ${HIKARI_PREPARE_THRESHOLD:5}
 
   jpa:
     hibernate:
       ddl-auto: none
       default_schema: ${DEFAULT_SCHEMA:public}
-    show-sql: ${SHOW_SQL:true}
+    show-sql: ${SHOW_SQL:false}
     database-platform: ${HIBERNATE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
 
   jackson:
@@ -37,16 +39,16 @@ server:
 logging:
   level:
     org:
-      springframework: ${SPRING_LEVEL:INFO}
+     springframework: ${SPRING_LEVEL:INFO}
     com:
-      db: ${LOG_LEVEL:DEBUG}
+      db: ${LOG_LEVEL:INFO}
 
 jwt:
   secret: ${JWT_SECRET}
   expiration: 604800000
 
 app:
-  production: ${IS_PRODUCTION:false} 
+  production: ${IS_PRODUCTION:true}
   cors:
     allowed-origins: ${CORS_ALLOWED}
 
