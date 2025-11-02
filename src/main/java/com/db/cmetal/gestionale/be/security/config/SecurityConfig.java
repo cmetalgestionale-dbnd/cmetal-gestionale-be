@@ -36,6 +36,8 @@ public class SecurityConfig {
                 .requestMatchers(Constants.SWAGGER_WHITELIST).permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/auth/**").permitAll()
+                .requestMatchers("/health").permitAll()
+                .requestMatchers("/system/keepalive").permitAll()
                 .anyRequest().hasAnyRole(
                     Constants.ROLE_ADMIN,
                     Constants.ROLE_SUPERVISORE,

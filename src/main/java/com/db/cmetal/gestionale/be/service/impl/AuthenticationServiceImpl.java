@@ -2,6 +2,7 @@ package com.db.cmetal.gestionale.be.service.impl;
 
 import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -27,8 +28,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final UtenteRepository utenteRepository;
     private final JwtService jwtService;
 
-    // 🔧 CAMBIA QUESTO VALORE PER PASSARE DA LOCALE A PRODUZIONE
-    private static final boolean IS_PRODUCTION = true;
+    @Value("${app.production:false}")
+    private boolean isProduction;
 
     public AuthenticationServiceImpl(AuthenticationManager authenticationManager,
                                      UtenteRepository utenteRepository,
@@ -62,9 +63,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             long maxAgeSeconds = jwtService.getJwtExpirationMillis() / 1000L;
 
             // Config cookie
-            String domain = IS_PRODUCTION ? ".castellanometal.com" : null;
-            boolean secure = IS_PRODUCTION;
-            String sameSite = IS_PRODUCTION ? "None" : "Lax";
+            String domain = isProduction ? ".castellanometal.com" : null;
+            boolean secure = isProduction;
+            String sameSite = isProduction ? "None" : "Lax";
 
             // Costruisci header cookie
             StringBuilder cookieBuilder = new StringBuilder();
@@ -99,9 +100,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public ResponseEntity<?> logout(HttpServletResponse response) {
-        String domain = IS_PRODUCTION ? ".castellanometal.com" : null;
-        boolean secure = IS_PRODUCTION;
-        String sameSite = IS_PRODUCTION ? "None" : "Lax";
+        String domain = isProduction ? ".castellanometal.com" : null;
+        boolean secure = isProduction;
+        String sameSite = isProduction ? "None" : "Lax";
 
         StringBuilder cookieBuilder = new StringBuilder();
         cookieBuilder.append(Constants.COOKIE_TOKEN)
