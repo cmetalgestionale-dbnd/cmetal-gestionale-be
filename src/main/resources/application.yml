@@ -54,3 +54,10 @@ app:
 
 frontend:
   url: ${FRONTEND_URL}
+
+supabase:
+  s3:
+    bucket: ${SUPABASE_BUCKET_NAME}
+    endpoint: ${SUPABASE_S3_ENDPOINT}
+    access-key: ${SUPABASE_S3_ACCESS_KEY}
+    secret-key: ${SUPABASE_S3_SECRET_KEY}

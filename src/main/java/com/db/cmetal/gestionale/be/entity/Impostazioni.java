@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Impostazioni {
+
     @Id
     @Column(length = 100)
     private String chiave;
@@ -23,4 +24,10 @@ public class Impostazioni {
 
     @Column(columnDefinition = "TEXT")
     private String descrizione;
+
+    @Column(name = "min_value")
+    private Double minValue;
+
+    @Column(name = "max_value")
+    private Double maxValue;
 }

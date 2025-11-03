@@ -38,16 +38,36 @@ public class UtenteServiceImpl implements UtenteService {
 
     @Override
     public Utente save(Utente utente) {
-        if (utente.getId() == null || !isPasswordEncoded(utente.getPassword())) {
+        // Se password non vuota e non ancora codificata → codifica
+        if (utente.getPassword() != null && !utente.getPassword().isEmpty() && !isPasswordEncoded(utente.getPassword())) {
             utente.setPassword(passwordEncoder.encode(utente.getPassword()));
+        } else if (utente.getId() != null && (utente.getPassword() == null || utente.getPassword().isEmpty())) {
+            // Se modifica e password vuota, prendi quella esistente
+            Utente existing = repository.findById(utente.getId()).orElseThrow();
+            utente.setPassword(existing.getPassword());
         }
+
+        if (utente.getIsDeleted() == null) {
+            utente.setIsDeleted(false);
+        }
+        if (utente.getAttivo() == null) {
+            utente.setAttivo(true);
+        }
+
         return repository.save(utente);
     }
 
+
+
     @Override
     public void deleteById(Long id) {
-        repository.deleteById(id);
+        repository.findById(id).ifPresent(u -> {
+            u.setIsDeleted(true);
+            u.setAttivo(false); // opzionale, per sicurezza
+            repository.save(u);
+        });
     }
+
 
     private boolean isPasswordEncoded(String password) {
         return password != null && password.startsWith("$2");

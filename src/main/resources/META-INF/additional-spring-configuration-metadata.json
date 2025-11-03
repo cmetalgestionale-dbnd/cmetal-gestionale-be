@@ -53,5 +53,25 @@
     "name": "app.production",
     "type": "java.lang.String",
     "description": "A description for 'app.production'"
+  },
+  {
+    "name": "supabase.s3.bucket",
+    "type": "java.lang.String",
+    "description": "A description for 'supabase.s3.bucket'"
+  },
+  {
+    "name": "supabase.s3.endpoint",
+    "type": "java.lang.String",
+    "description": "A description for 'supabase.s3.endpoint'"
+  },
+  {
+    "name": "supabase.s3.access-key",
+    "type": "java.lang.String",
+    "description": "A description for 'supabase.s3.access-key'"
+  },
+  {
+    "name": "supabase.s3.secret-key",
+    "type": "java.lang.String",
+    "description": "A description for 'supabase.s3.secret-key'"
   }
 ]}

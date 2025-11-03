@@ -25,11 +25,6 @@ public class Allegato {
     @Column(name = "storage_path", nullable = false, columnDefinition = "TEXT")
     private String storagePath;
 
-    @Column(name = "url_pubblico")
-    private String urlPubblico;
-
-    private String riferimento;
-
     @ManyToOne
     @JoinColumn(name = "created_by")
     private Utente createdBy;

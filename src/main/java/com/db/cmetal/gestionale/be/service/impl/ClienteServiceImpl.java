@@ -1,52 +1,50 @@
 package com.db.cmetal.gestionale.be.service.impl;
 
-import com.db.cmetal.gestionale.be.entity.Cliente;
-import com.db.cmetal.gestionale.be.repository.ClienteRepository;
-import com.db.cmetal.gestionale.be.service.ClienteService;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.stereotype.Service;
+
+import com.db.cmetal.gestionale.be.entity.Cliente;
+import com.db.cmetal.gestionale.be.repository.ClienteRepository;
+import com.db.cmetal.gestionale.be.service.ClienteService;
+
 @Service
-@Transactional
 public class ClienteServiceImpl implements ClienteService {
 
-    private final ClienteRepository clienteRepository;
+    private final ClienteRepository repository;
 
-    public ClienteServiceImpl(ClienteRepository clienteRepository) {
-        this.clienteRepository = clienteRepository;
-    }
-
-    @Override
-    public List<Cliente> findAll() {
-        return clienteRepository.findAll();
+    public ClienteServiceImpl(ClienteRepository repository) {
+        this.repository = repository;
     }
 
     @Override
     public Optional<Cliente> findById(Long id) {
-        return clienteRepository.findById(id);
+        return repository.findById(id);
+    }
+
+    @Override
+    public List<Cliente> findAll() {
+        return repository.findAll();
     }
 
     @Override
     public Cliente save(Cliente cliente) {
-        return clienteRepository.save(cliente);
+        if (cliente.getIsDeleted() == null) {
+            cliente.setIsDeleted(false);
+        }
+        if (cliente.getCreatedAt() == null) {
+            cliente.setCreatedAt(OffsetDateTime.now());
+        }
+        return repository.save(cliente);
     }
 
     @Override
-    public Cliente update(Long id, Cliente cliente) {
-        Cliente existing = clienteRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Cliente non trovato"));
-        cliente.setId(existing.getId());
-        return clienteRepository.save(cliente);
-    }
-
-    @Override
-    public void delete(Long id) {
-        Cliente c = clienteRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Cliente non trovato"));
-        c.setIsDeleted(true);
-        clienteRepository.save(c);
+    public void deleteById(Long id) {
+        repository.findById(id).ifPresent(c -> {
+            c.setIsDeleted(true);
+            repository.save(c);
+        });
     }
 }

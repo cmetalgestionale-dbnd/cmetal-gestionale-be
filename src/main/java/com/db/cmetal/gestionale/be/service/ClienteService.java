@@ -1,13 +1,13 @@
 package com.db.cmetal.gestionale.be.service;
 
-import com.db.cmetal.gestionale.be.entity.Cliente;
 import java.util.List;
 import java.util.Optional;
 
+import com.db.cmetal.gestionale.be.entity.Cliente;
+
 public interface ClienteService {
-    List<Cliente> findAll();
     Optional<Cliente> findById(Long id);
+    List<Cliente> findAll();
     Cliente save(Cliente cliente);
-    Cliente update(Long id, Cliente cliente);
-    void delete(Long id);
+    void deleteById(Long id);
 }

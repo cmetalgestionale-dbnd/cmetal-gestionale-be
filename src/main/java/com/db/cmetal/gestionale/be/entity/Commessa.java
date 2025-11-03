@@ -23,20 +23,9 @@ public class Commessa {
     @Column(columnDefinition = "TEXT")
     private String descrizione;
 
-    @Column(name = "rif_disegno", length = 100)
-    private String rifDisegno;
-
-    private String tipologia;
-
     @ManyToOne
     @JoinColumn(name = "pdf_allegato_id")
     private Allegato pdfAllegato;
-
-    @Column(nullable = false)
-    private String stato = "aperta";
-
-    @Column(columnDefinition = "TEXT")
-    private String note;
 
     @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted = false;
@@ -50,7 +39,4 @@ public class Commessa {
 
     @Column(name = "data_creazione", nullable = false)
     private LocalDate dataCreazione;
-
-    @Column(name = "data_consegna")
-    private LocalDate dataConsegna;
 }

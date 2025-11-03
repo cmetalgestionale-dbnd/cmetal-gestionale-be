@@ -11,6 +11,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class CmetalBeApplication {
 
 	public static void main(String[] args) {
+		System.setProperty("https.protocols", "TLSv1.2");
 		SpringApplication.run(CmetalBeApplication.class, args);
 	}
 

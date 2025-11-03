@@ -56,9 +56,10 @@ public class UtenteController {
     public ResponseEntity<Object> delete(@PathVariable Long id) {
         return utenteService.findById(id)
                 .map(u -> {
-                    utenteService.deleteById(id);
+                    utenteService.deleteById(id); // ora logica
                     return ResponseEntity.noContent().build();
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
+
 }

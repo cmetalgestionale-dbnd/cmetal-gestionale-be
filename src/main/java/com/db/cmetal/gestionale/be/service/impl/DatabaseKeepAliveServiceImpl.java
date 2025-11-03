@@ -33,9 +33,9 @@ public class DatabaseKeepAliveServiceImpl implements DatabaseKeepAliveService {
     public void keepDatabaseAlive() {
         try {
             jdbcTemplate.execute("SELECT 1");
-            log.info("✅ Keep-alive query executed at " + LocalDateTime.now());
+            log.info("Keep-alive query executed at " + LocalDateTime.now());
         } catch (Exception e) {
-            log.warning("⚠️ Keep-alive query failed: " + e.getMessage());
+            log.warning("Keep-alive query failed: " + e.getMessage());
         }
     }
 }
