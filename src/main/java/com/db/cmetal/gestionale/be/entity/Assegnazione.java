@@ -1,11 +1,18 @@
 package com.db.cmetal.gestionale.be.entity;
 
-import jakarta.persistence.*;
+import java.time.OffsetDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import java.time.OffsetDateTime;
-import java.time.LocalDate;
 
 @Entity
 @Table(name = "assegnazione")
@@ -35,9 +42,6 @@ public class Assegnazione {
 
     @Column(name = "assegnazione_at", nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     private OffsetDateTime assegnazioneAt;
-
-    @Column(name = "data_programmata", nullable = false)
-    private LocalDate dataProgrammata;
 
     @Column(name = "start_at", columnDefinition = "TIMESTAMP WITH TIME ZONE")
     private OffsetDateTime startAt;

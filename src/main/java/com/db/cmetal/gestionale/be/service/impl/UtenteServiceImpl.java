@@ -1,5 +1,6 @@
 package com.db.cmetal.gestionale.be.service.impl;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -38,11 +39,10 @@ public class UtenteServiceImpl implements UtenteService {
 
     @Override
     public Utente save(Utente utente) {
-        // Se password non vuota e non ancora codificata → codifica
+        // Gestione password
         if (utente.getPassword() != null && !utente.getPassword().isEmpty() && !isPasswordEncoded(utente.getPassword())) {
             utente.setPassword(passwordEncoder.encode(utente.getPassword()));
         } else if (utente.getId() != null && (utente.getPassword() == null || utente.getPassword().isEmpty())) {
-            // Se modifica e password vuota, prendi quella esistente
             Utente existing = repository.findById(utente.getId()).orElseThrow();
             utente.setPassword(existing.getPassword());
         }
@@ -54,10 +54,22 @@ public class UtenteServiceImpl implements UtenteService {
             utente.setAttivo(true);
         }
 
+        LocalDateTime now = LocalDateTime.now();
+
+        if (utente.getId() == null) {
+            // Nuovo utente → setta createdAt
+            utente.setCreatedAt(now);
+        } else {
+            // Modifica → conserva createdAt esistente
+            Utente existing = repository.findById(utente.getId()).orElseThrow();
+            utente.setCreatedAt(existing.getCreatedAt());
+        }
+
+        // Aggiorna sempre updatedAt
+        utente.setUpdatedAt(now);
+
         return repository.save(utente);
     }
-
-
 
     @Override
     public void deleteById(Long id) {

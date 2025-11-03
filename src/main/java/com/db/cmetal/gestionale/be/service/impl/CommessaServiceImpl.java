@@ -1,5 +1,6 @@
 package com.db.cmetal.gestionale.be.service.impl;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -7,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import com.db.cmetal.gestionale.be.entity.Allegato;
 import com.db.cmetal.gestionale.be.entity.Commessa;
+import com.db.cmetal.gestionale.be.entity.Utente;
 import com.db.cmetal.gestionale.be.repository.AllegatoRepository;
 import com.db.cmetal.gestionale.be.repository.CommessaRepository;
 import com.db.cmetal.gestionale.be.service.CommessaService;
@@ -26,9 +28,14 @@ public class CommessaServiceImpl implements CommessaService {
     }
 
     @Override
-    public Commessa saveCommessa(Commessa commessa) {
+    public Commessa saveCommessa(Commessa commessa, Utente user) {
+        if (commessa.getId() == null) {
+            commessa.setCreatedAt(LocalDateTime.now());
+            commessa.setCreatedBy(user);
+        }
         return commessaRepository.save(commessa);
     }
+
 
     @Override
     public List<Commessa> getAllCommesse() {
@@ -55,24 +62,9 @@ public class CommessaServiceImpl implements CommessaService {
                     existing.setIsDeleted(commessa.getIsDeleted());
                     existing.setCreatedBy(commessa.getCreatedBy());
                     existing.setCreatedAt(commessa.getCreatedAt());
-                    existing.setDataCreazione(commessa.getDataCreazione());
                     return commessaRepository.save(existing);
                 })
                 .orElseThrow(() -> new RuntimeException("Commessa non trovata con id: " + id));
-    }
-
-    @Override
-    public void deleteCommessa(Long id) {
-        Commessa c = commessaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Commessa non trovata"));
-        c.setIsDeleted(true);
-        if (c.getPdfAllegato() != null) {
-            Allegato a = c.getPdfAllegato();
-            a.setIsDeleted(true);
-            allegatoRepository.save(a);
-            c.setPdfAllegato(null);
-        }
-        commessaRepository.save(c);
     }
 
     @Override
@@ -84,7 +76,32 @@ public class CommessaServiceImpl implements CommessaService {
         }
         commessaRepository.delete(c);
     }
-
     
+    @Override
+    public void deleteCommessa(Long id) {
+        Commessa c = commessaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Commessa non trovata"));
+        c.setIsDeleted(true);
+        if (c.getPdfAllegato() != null) {
+            Allegato a = c.getPdfAllegato();
+            a.setIsDeleted(true);
+            allegatoRepository.save(a);
+        }
+        commessaRepository.save(c);
+    }
+
+    @Override
+    public void restoreCommessa(Long id) {
+        Commessa c = commessaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Commessa non trovata"));
+        c.setIsDeleted(false);
+        if (c.getPdfAllegato() != null) {
+            Allegato a = c.getPdfAllegato();
+            a.setIsDeleted(false);
+            allegatoRepository.save(a);
+        }
+        commessaRepository.save(c);
+    }
+
     
 }

@@ -1,6 +1,5 @@
 package com.db.cmetal.gestionale.be.service.impl;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,9 +32,6 @@ public class ClienteServiceImpl implements ClienteService {
     public Cliente save(Cliente cliente) {
         if (cliente.getIsDeleted() == null) {
             cliente.setIsDeleted(false);
-        }
-        if (cliente.getCreatedAt() == null) {
-            cliente.setCreatedAt(OffsetDateTime.now());
         }
         return repository.save(cliente);
     }

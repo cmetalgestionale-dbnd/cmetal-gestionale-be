@@ -123,11 +123,20 @@
 		    <groupId>org.springframework.boot</groupId>
 		    <artifactId>spring-boot-starter-validation</artifactId>
 		</dependency>
-		<dependency>
-	        <groupId>software.amazon.awssdk</groupId>
-	        <artifactId>s3</artifactId>
-	        <version>2.21.4</version> <!-- scegli l'ultima stabile -->
-	    </dependency>
+    <!-- AWS SDK v2 S3 -->
+    <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>s3</artifactId>
+        <version>2.21.26</version>
+    </dependency>
+
+    <!-- HTTP Client per AWS SDK (UrlConnection) -->
+    <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>url-connection-client</artifactId>
+        <version>2.21.26</version>
+    </dependency>
+
 	</dependencies>
 
 	<build>
