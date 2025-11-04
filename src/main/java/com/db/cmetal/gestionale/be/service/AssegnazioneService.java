@@ -1,13 +1,17 @@
 package com.db.cmetal.gestionale.be.service;
 
-import com.db.cmetal.gestionale.be.entity.Assegnazione;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Optional;
+
+import com.db.cmetal.gestionale.be.dto.AssegnazioneDto;
+import com.db.cmetal.gestionale.be.entity.Assegnazione;
 
 public interface AssegnazioneService {
-    List<Assegnazione> findAll();
-    Optional<Assegnazione> findById(Long id);
-    Assegnazione save(Assegnazione assegnazione);
-    Assegnazione update(Long id, Assegnazione assegnazione);
-    void delete(Long id);
+    List<Assegnazione> getAll();
+    List<Assegnazione> getByUtenteAndData(Long utenteId, LocalDate data);
+    Assegnazione getById(Long id);
+    Assegnazione createFromDto(AssegnazioneDto dto, Long assegnatoDaId, OffsetDateTime assegnazioneAt);
+    Assegnazione updateFromDto(Long id, AssegnazioneDto dto);
+    void softDelete(Long id);
 }

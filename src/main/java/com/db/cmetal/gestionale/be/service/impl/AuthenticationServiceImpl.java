@@ -11,8 +11,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.db.cmetal.gestionale.be.dto.CurrentUserDTO;
-import com.db.cmetal.gestionale.be.dto.LoginRequest;
+import com.db.cmetal.gestionale.be.dto.CurrentUserDto;
+import com.db.cmetal.gestionale.be.dto.LoginRequestDto;
 import com.db.cmetal.gestionale.be.entity.Utente;
 import com.db.cmetal.gestionale.be.repository.UtenteRepository;
 import com.db.cmetal.gestionale.be.security.jwt.JwtService;
@@ -41,7 +41,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public ResponseEntity<?> login(LoginRequest request, HttpServletResponse response) {
+    public ResponseEntity<?> login(LoginRequestDto request, HttpServletResponse response) {
         try {
             // Autenticazione
             authenticationManager.authenticate(
@@ -83,7 +83,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             response.setHeader("Set-Cookie", cookieBuilder.toString());
 
             // Restituisce info utente corrente
-            CurrentUserDTO dto = CurrentUserDTO.fromUtente(
+            CurrentUserDto dto = CurrentUserDto.fromUtente(
                     Constants.getRoleName(utente.getLivello()),
                     utente.getId(),
                     utente.getUsername(),
@@ -128,7 +128,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             var maybe = utenteRepository.findByUsername(username);
             if (maybe.isPresent()) {
                 Utente u = maybe.get();
-                CurrentUserDTO dto = CurrentUserDTO.fromUtente(
+                CurrentUserDto dto = CurrentUserDto.fromUtente(
                         Constants.getRoleName(u.getLivello()),
                         u.getId(),
                         u.getUsername(),

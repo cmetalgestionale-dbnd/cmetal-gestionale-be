@@ -31,10 +31,10 @@ public class S3Config {
     public S3Client s3Client() {
         AwsBasicCredentials creds = AwsBasicCredentials.create(accessKey, secretKey);
         return S3Client.builder()
-                .endpointOverride(URI.create(endpoint))    // Endpoint Supabase
+                .endpointOverride(URI.create(endpoint))
                 .credentialsProvider(StaticCredentialsProvider.create(creds))
-                .region(Region.EU_WEST_1)                  // Regione dummy
-                .forcePathStyle(true)                      // IMPORTANTE per Supabase
+                .region(Region.EU_WEST_1)
+                .forcePathStyle(true) 
                 .httpClientBuilder(UrlConnectionHttpClient.builder())
                 .build();
     }

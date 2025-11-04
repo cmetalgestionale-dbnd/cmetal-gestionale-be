@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.db.cmetal.gestionale.be.dto.LoginRequest;
+import com.db.cmetal.gestionale.be.dto.LoginRequestDto;
 import com.db.cmetal.gestionale.be.service.AuthenticationService;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -21,7 +21,7 @@ public class AuthenticationController {
     AuthenticationService authenticationService;
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletResponse response) {
+    public ResponseEntity<?> login(@RequestBody LoginRequestDto request, HttpServletResponse response) {
         return authenticationService.login(request, response);
     }
 

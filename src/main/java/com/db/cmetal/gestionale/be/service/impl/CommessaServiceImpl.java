@@ -3,9 +3,14 @@ package com.db.cmetal.gestionale.be.service.impl;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import com.db.cmetal.gestionale.be.dto.CommessaDto;
 import com.db.cmetal.gestionale.be.entity.Allegato;
 import com.db.cmetal.gestionale.be.entity.Commessa;
 import com.db.cmetal.gestionale.be.entity.Utente;
@@ -21,10 +26,12 @@ public class CommessaServiceImpl implements CommessaService {
     private final AllegatoRepository allegatoRepository;
     private final SupabaseS3Service s3Service;
 
-    public CommessaServiceImpl(CommessaRepository commessaRepository, SupabaseS3Service s3Service, AllegatoRepository allegatoRepository) {
+    public CommessaServiceImpl(CommessaRepository commessaRepository, 
+                               SupabaseS3Service s3Service, 
+                               AllegatoRepository allegatoRepository) {
         this.commessaRepository = commessaRepository;
-		this.allegatoRepository = allegatoRepository;
-		this.s3Service = s3Service;
+        this.s3Service = s3Service;
+        this.allegatoRepository = allegatoRepository;
     }
 
     @Override
@@ -35,7 +42,6 @@ public class CommessaServiceImpl implements CommessaService {
         }
         return commessaRepository.save(commessa);
     }
-
 
     @Override
     public List<Commessa> getAllCommesse() {
@@ -76,7 +82,7 @@ public class CommessaServiceImpl implements CommessaService {
         }
         commessaRepository.delete(c);
     }
-    
+
     @Override
     public void deleteCommessa(Long id) {
         Commessa c = commessaRepository.findById(id)
@@ -103,5 +109,89 @@ public class CommessaServiceImpl implements CommessaService {
         commessaRepository.save(c);
     }
 
-    
+    // LOGICA spostata dal controller
+
+    @Override
+    public Commessa createCommessa(CommessaDto dto, MultipartFile file, Utente user) throws Exception {
+        Commessa commessa = new Commessa();
+        commessa.setCodice(dto.codice);
+        commessa.setDescrizione(dto.descrizione);
+
+        if (file != null && !file.isEmpty()) {
+            Allegato allegato = uploadAndSaveAllegato(file, user);
+            commessa.setPdfAllegato(allegato);
+        }
+
+        return saveCommessa(commessa, user);
+    }
+
+    @Override
+    public Commessa updateCommessaWithFile(Long id, CommessaDto dto, MultipartFile file, Boolean removeFile, Utente user) throws Exception {
+        Commessa existing = getCommessaById(id)
+                .orElseThrow(() -> new RuntimeException("Commessa non trovata"));
+
+        existing.setCodice(dto.codice);
+        existing.setDescrizione(dto.descrizione);
+
+        // Gestione rimozione allegato
+        if (Boolean.TRUE.equals(removeFile) && existing.getPdfAllegato() != null) {
+            Allegato a = existing.getPdfAllegato();
+            a.setIsDeleted(true);
+            allegatoRepository.save(a);
+            existing.setPdfAllegato(null);
+        }
+
+        // Gestione sostituzione allegato
+        if (file != null && !file.isEmpty()) {
+            if (existing.getPdfAllegato() != null) {
+                Allegato old = existing.getPdfAllegato();
+                old.setIsDeleted(true);
+                allegatoRepository.save(old);
+            }
+            Allegato newA = uploadAndSaveAllegato(file, user);
+            existing.setPdfAllegato(newA);
+        }
+
+        return updateCommessa(id, existing);
+    }
+
+    private Allegato uploadAndSaveAllegato(MultipartFile file, Utente user) throws Exception {
+        String path = "commesse/" + UUID.randomUUID() + "_" + file.getOriginalFilename();
+        s3Service.uploadFile(file, path);
+
+        Allegato allegato = new Allegato();
+        allegato.setNomeFile(file.getOriginalFilename());
+        allegato.setTipoFile(file.getContentType());
+        allegato.setStoragePath(path);
+        allegato.setCreatedAt(LocalDateTime.now());
+        allegato.setCreatedBy(user);
+        allegato.setIsDeleted(false);
+
+        return allegatoRepository.save(allegato);
+    }
+
+    @Override
+    public Optional<String> getAllegatoUrl(Long id) {
+        return getCommessaById(id)
+                .filter(c -> c.getPdfAllegato() != null)
+                .map(c -> s3Service.getPublicUrl(c.getPdfAllegato().getStoragePath()));
+    }
+
+    @Override
+    public Optional<ResponseEntity<byte[]>> getAllegatoFile(Long id) throws Exception {
+        return getCommessaById(id)
+                .filter(c -> c.getPdfAllegato() != null)
+                .map(c -> {
+                    Allegato allegato = c.getPdfAllegato();
+                    try {
+                        byte[] fileBytes = s3Service.downloadFile(allegato.getStoragePath());
+                        return ResponseEntity.ok()
+                                .header("Content-Disposition", "inline; filename=\"" + allegato.getNomeFile() + "\"")
+                                .contentType(MediaType.parseMediaType(allegato.getTipoFile()))
+                                .body(fileBytes);
+                    } catch (Exception e) {
+                        throw new RuntimeException("Errore durante il download del file", e);
+                    }
+                });
+    }
 }

@@ -3,7 +3,7 @@ package com.db.cmetal.gestionale.be.utils;
 public final class Constants {
     private Constants() {}
 
- // Roles (string names)
+    // Roles (string names)
     public static final String ROLE_ADMIN = "ADMIN";
     public static final String ROLE_SUPERVISORE = "SUPERVISORE";
     public static final String ROLE_DIPENDENTE = "DIPENDENTE";
@@ -38,37 +38,15 @@ public final class Constants {
         };
     }
     
-    // Tipi messaggi WebSocket client
-    public static final String MSG_ADD_ITEM_TEMP = "ADD_ITEM_TEMP";
-    public static final String MSG_REMOVE_ITEM_TEMP = "REMOVE_ITEM_TEMP";
-    public static final String MSG_UPDATE_TEMP = "UPDATE_TEMP";
-    public static final String MSG_WARNING = "WARNING";
-    public static final String MSG_ERROR = "ERROR";
-    public static final String MSG_GET_STATUS = "GET_STATUS";
-    public static final String MSG_UPDATE_TEMP_DELTA = "UPDATE_TEMP_DELTA";
-    public static final String MSG_CLEAR_TEMP = "CLEAR_TEMP";
-
-    public static final String ERR_LIMIT_PORTATE = "Limite portate raggiunto";
-    public static final String ERR_LIMIT_PRODOTTO = "Limite per questo prodotto raggiunto (1 a persona per sessione)";
-    public static final String ORDINE_STATO_INVIATO = "INVIATO";
-
-    
-    // Tipi messaggi WebSocket cucina
-    public static final String MSG_CONSEGNA_CHANGED = "CONSEGNA_CHANGED";
-    
-    // Tipi messaggi WebSocket condivisi
-    public static final String MSG_ORDER_SENT = "ORDER_SENT";
+    // Tipi messaggi WebSocket
     public static final String MSG_REFRESH = "REFRESH";
+    
+    // Topics WebSocket
+    public static final String BROADCAST = "/topic/broadcast";
 
     // OpenAPI / Swagger
     public static final String OPENAPI_SECURITY_SCHEME = "bearerAuth";
-    public static final String OPENAPI_TITLE = "AYCE Blackout API";
+    public static final String OPENAPI_TITLE = "CMETAL API";
     public static final String OPENAPI_VERSION = "1.0";
-    public static final String OPENAPI_DESCRIPTION = "Documentazione delle API del sistema Blackout";
-
-    // Sessioni / codici di stato
-    public static final String SESSION_STATE_ACTIVE = "ATTIVA";
-
-    // Error / response keys
-    public static final String ERROR_KEY = "error";
+    public static final String OPENAPI_DESCRIPTION = "Documentazione delle API del sistema CMETAL";
 }
