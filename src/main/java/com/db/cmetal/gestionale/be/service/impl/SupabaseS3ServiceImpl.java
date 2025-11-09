@@ -1,5 +1,7 @@
 package com.db.cmetal.gestionale.be.service.impl;
 
+import java.util.Locale;
+
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -102,6 +104,7 @@ public class SupabaseS3ServiceImpl implements SupabaseS3Service {
         if (bytes < 1024) return bytes + " B";
         int exp = (int) (Math.log(bytes) / Math.log(1024));
         String pre = "KMGTPE".charAt(exp - 1) + "";
-        return String.format("%.1f %sB", bytes / Math.pow(1024, exp), pre);
+        return String.format(Locale.US, "%.1f %sB", bytes / Math.pow(1024, exp), pre);
+
     }
 }

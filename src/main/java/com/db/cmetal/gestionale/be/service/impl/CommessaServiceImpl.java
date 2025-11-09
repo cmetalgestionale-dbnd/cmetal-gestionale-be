@@ -1,10 +1,24 @@
 package com.db.cmetal.gestionale.be.service.impl;
 
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.apache.pdfbox.cos.COSName;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDResources;
+import org.apache.pdfbox.pdmodel.graphics.PDXObject;
+import org.apache.pdfbox.pdmodel.graphics.image.JPEGFactory;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -19,12 +33,16 @@ import com.db.cmetal.gestionale.be.repository.CommessaRepository;
 import com.db.cmetal.gestionale.be.service.CommessaService;
 import com.db.cmetal.gestionale.be.service.SupabaseS3Service;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Service
+@Slf4j
 public class CommessaServiceImpl implements CommessaService {
 
     private final CommessaRepository commessaRepository;
     private final AllegatoRepository allegatoRepository;
     private final SupabaseS3Service s3Service;
+    private static final long MAX_BYTES = 512L * 1024L; // 0.5 MB
 
     public CommessaServiceImpl(CommessaRepository commessaRepository, 
                                SupabaseS3Service s3Service, 
@@ -161,13 +179,34 @@ public class CommessaServiceImpl implements CommessaService {
             throw new IllegalArgumentException("Il file deve essere un PDF");
         }
 
-        // Controllo dimensione (1 MB = 1_048_576 byte)
-        if (file.getSize() > 1_048_576) {
-            throw new IllegalArgumentException("Il file non può superare 1 MB");
+        // Controllo dimensione
+        if (file.getSize() > 2_048_576) { // 2 MB
+            throw new IllegalArgumentException("Il file non può superare 2 MB");
+        }
+
+        byte[] originalBytes = file.getBytes();
+        byte[] toUploadBytes = originalBytes;
+
+        // Se supera 0.5 MB, tentiamo la compressione iterativa
+        if (originalBytes.length > MAX_BYTES) {
+            byte[] compressed = compressPdfToLimit(originalBytes, MAX_BYTES);
+            if (compressed == null) {
+                throw new IllegalArgumentException("Il file PDF è troppo grande anche dopo la compressione (max 0.5 MB)");
+            }
+            toUploadBytes = compressed;
         }
 
         String path = "commesse/" + UUID.randomUUID() + "_" + file.getOriginalFilename();
-        s3Service.uploadFile(file, path);
+
+        // Creiamo un MultipartFile in-memory con i bytes (non cambiamo l'interfaccia s3Service)
+        MultipartFile multipartToUpload = new InMemoryMultipartFile(
+                "file",
+                file.getOriginalFilename(),
+                file.getContentType(),
+                toUploadBytes
+        );
+
+        s3Service.uploadFile(multipartToUpload, path);
 
         Allegato allegato = new Allegato();
         allegato.setNomeFile(file.getOriginalFilename());
@@ -180,6 +219,108 @@ public class CommessaServiceImpl implements CommessaService {
         return allegatoRepository.save(allegato);
     }
 
+    /**
+     * Tenta di comprimere il PDF ricodificando le immagini interne come JPEG con
+     * qualità/scala decrescente. Ritorna byte[] se si rientra nel limite, altrimenti null.
+     */
+    private byte[] compressPdfToLimit(byte[] inputPdf, long maxBytes) {
+        // Strategia: proviamo combinazioni di scale/quality
+        float[] qualities = new float[] { 0.75f, 0.6f, 0.5f, 0.4f };
+        double[] scales = new double[] { 1.0, 0.9, 0.8, 0.7 };
+
+        for (double scale : scales) {
+            for (float quality : qualities) {
+                try (PDDocument doc = PDDocument.load(inputPdf)) {
+                    boolean replacedAny = false;
+
+                    for (PDPage page : doc.getPages()) {
+                        PDResources resources = page.getResources();
+                        if (resources == null) continue;
+
+                        // Copiamo i nomi prima di iterare (per evitare ConcurrentModification)
+                        for (COSName name : resources.getXObjectNames()) {
+                            try {
+                                PDXObject xobj = resources.getXObject(name);
+                                if (xobj instanceof PDImageXObject) {
+                                    PDImageXObject img = (PDImageXObject) xobj;
+                                    BufferedImage bim = img.getImage();
+
+                                    // Calcola nuova dimensione in base alla scala
+                                    int newW = Math.max(1, (int) Math.round(bim.getWidth() * scale));
+                                    int newH = Math.max(1, (int) Math.round(bim.getHeight() * scale));
+
+                                    // Ridimensionamento
+                                    BufferedImage resized = new BufferedImage(newW, newH, BufferedImage.TYPE_INT_RGB);
+                                    Graphics2D g = resized.createGraphics();
+                                    g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                                    g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                                    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                                    g.drawImage(bim, 0, 0, newW, newH, null);
+                                    g.dispose();
+
+                                    // Ricodifica come JPEG con la qualità scelta
+                                    PDImageXObject jpg = JPEGFactory.createFromImage(doc, resized, quality);
+
+                                    // Sostituisci l'immagine nelle risorse
+                                    resources.put(name, jpg);
+                                    replacedAny = true;
+                                }
+                            } catch (Exception e) {
+                                // Non blocchiamo l'intero processo per un'immagine; loggare e proseguire
+                                log.warn("Errore comprimendo immagine in pagina: {}", e.getMessage());
+                            }
+                        }
+                    }
+
+                    // Se non abbiamo trovato immagini, possiamo comunque salvare con compressione stream
+                    // (PDFBox applicherà compressione su flussi durante il salvataggio).
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    doc.save(baos);
+                    byte[] out = baos.toByteArray();
+
+                    log.info("Tentativo compressione: scale={}, quality={}, size={} KB, replacedAny={}",
+                            scale, quality, out.length / 1024, replacedAny);
+
+                    if (out.length <= maxBytes) {
+                        return out;
+                    }
+                    // altrimenti continua con altre combinazioni
+                } catch (IOException ioe) {
+                    log.warn("Errore durante compressione tentativo scale={}, quality={}: {}", scale, quality, ioe.getMessage());
+                    // continua con il prossimo tentativo
+                }
+            }
+        }
+
+        // Se qui, tutti i tentativi non sono riusciti -> ritorna null (caller solleverà eccezione)
+        return null;
+    }
+
+    /**
+     * Implementazione minimale di MultipartFile in memoria (per chiamare uploadFile esistente).
+     */
+    private static class InMemoryMultipartFile implements MultipartFile {
+        private final String name;
+        private final String originalFilename;
+        private final String contentType;
+        private final byte[] content;
+
+        public InMemoryMultipartFile(String name, String originalFilename, String contentType, byte[] content) {
+            this.name = name;
+            this.originalFilename = originalFilename;
+            this.contentType = contentType;
+            this.content = content == null ? new byte[0] : content;
+        }
+
+        @Override public String getName() { return name; }
+        @Override public String getOriginalFilename() { return originalFilename; }
+        @Override public String getContentType() { return contentType; }
+        @Override public boolean isEmpty() { return content.length == 0; }
+        @Override public long getSize() { return content.length; }
+        @Override public byte[] getBytes() throws IOException { return content; }
+        @Override public java.io.InputStream getInputStream() throws IOException { return new ByteArrayInputStream(content); }
+        @Override public void transferTo(File dest) throws IOException { java.nio.file.Files.write(dest.toPath(), content); }
+    }
 
     @Override
     public Optional<String> getAllegatoUrl(Long id) {
