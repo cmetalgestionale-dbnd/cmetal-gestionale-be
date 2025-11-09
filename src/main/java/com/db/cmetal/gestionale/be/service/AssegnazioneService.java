@@ -23,4 +23,5 @@ public interface AssegnazioneService {
 	Assegnazione endAssegnazione(Long id, Long id2);
 	Allegato uploadFoto(Long assegnazioneId, MultipartFile file, Long utenteId) throws Exception;
     Optional<ResponseEntity<byte[]>> getFotoFile(Long assegnazioneId) throws Exception;
+	byte[] generaReportPdf(LocalDate localDate);
 }

@@ -1,8 +1,11 @@
 package com.db.cmetal.gestionale.be.service.impl;
 
+import java.awt.Color;
+import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -18,14 +21,30 @@ import com.db.cmetal.gestionale.be.entity.Allegato;
 import com.db.cmetal.gestionale.be.entity.Assegnazione;
 import com.db.cmetal.gestionale.be.entity.Cliente;
 import com.db.cmetal.gestionale.be.entity.Commessa;
+import com.db.cmetal.gestionale.be.entity.Impostazioni;
 import com.db.cmetal.gestionale.be.entity.Utente;
 import com.db.cmetal.gestionale.be.repository.AllegatoRepository;
 import com.db.cmetal.gestionale.be.repository.AssegnazioneRepository;
 import com.db.cmetal.gestionale.be.repository.ClienteRepository;
 import com.db.cmetal.gestionale.be.repository.CommessaRepository;
+import com.db.cmetal.gestionale.be.repository.ImpostazioniRepository;
 import com.db.cmetal.gestionale.be.repository.UtenteRepository;
 import com.db.cmetal.gestionale.be.service.AssegnazioneService;
 import com.db.cmetal.gestionale.be.service.SupabaseS3Service;
+import com.lowagie.text.Chunk;
+import com.lowagie.text.Document;
+import com.lowagie.text.Element;
+import com.lowagie.text.Font;
+import com.lowagie.text.FontFactory;
+import com.lowagie.text.PageSize;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.Phrase;
+import com.lowagie.text.pdf.ColumnText;
+import com.lowagie.text.pdf.PdfContentByte;
+import com.lowagie.text.pdf.PdfPCell;
+import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.pdf.PdfPageEventHelper;
+import com.lowagie.text.pdf.PdfWriter;
 
 import lombok.RequiredArgsConstructor;
 
@@ -39,6 +58,7 @@ public class AssegnazioneServiceImpl implements AssegnazioneService {
     private final CommessaRepository commessaRepository;
     private final ClienteRepository clienteRepository;
     private final AllegatoRepository allegatoRepository;
+    private final ImpostazioniRepository impostazioniRepository;
     private final SupabaseS3Service s3Service;
 
     @Override
@@ -187,7 +207,6 @@ public class AssegnazioneServiceImpl implements AssegnazioneService {
         return saved;
     }
 
-
     @Override
     public Optional<ResponseEntity<byte[]>> getFotoFile(Long assegnazioneId) throws Exception {
         return Optional.ofNullable(getById(assegnazioneId).getFotoAllegato())
@@ -203,4 +222,150 @@ public class AssegnazioneServiceImpl implements AssegnazioneService {
                     }
                 });
     }
+
+    @Override
+    public byte[] generaReportPdf(LocalDate localDate) {
+        try {
+            OffsetDateTime startOfDay = localDate.atStartOfDay().atOffset(OffsetDateTime.now().getOffset());
+            OffsetDateTime endOfDay = localDate.plusDays(1).atStartOfDay().atOffset(OffsetDateTime.now().getOffset());
+
+            List<Utente> utenti = utenteRepository.findByLivello(2);
+
+            // Recupero impostazioni aziendali
+            String aziendaNome = impostazioniRepository.findById("azienda_nome")
+                    .map(Impostazioni::getValore)
+                    .orElse("CASTELLANO METAL");
+
+            String aziendaPiva = impostazioniRepository.findById("azienda_piva")
+                    .map(Impostazioni::getValore)
+                    .orElse("");
+
+            String aziendaIndirizzo = impostazioniRepository.findById("azienda_indirizzo")
+                    .map(Impostazioni::getValore)
+                    .orElse("");
+
+            Document document = new Document(PageSize.A4, 36, 36, 36, 36);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            PdfWriter writer = PdfWriter.getInstance(document, out);
+
+            // Aggiungo evento per footer dinamico
+            writer.setPageEvent(new PdfPageEventHelper() {
+                Font footerFont = FontFactory.getFont(FontFactory.HELVETICA, 8, Color.DARK_GRAY);
+
+                @Override
+                public void onEndPage(PdfWriter writer, Document document) {
+                    PdfContentByte cb = writer.getDirectContent();
+                    Phrase footer = new Phrase(aziendaIndirizzo + "  |  P.IVA " + aziendaPiva, footerFont);
+                    ColumnText.showTextAligned(
+                            cb,
+                            Element.ALIGN_CENTER,
+                            footer,
+                            (document.right() - document.left()) / 2 + document.leftMargin(),
+                            document.bottom() - 10,
+                            0
+                    );
+                }
+            });
+
+            document.open();
+
+            // === FONT ===
+            Font titoloFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14);
+            Font sottoTitoloFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11);
+            Font testoFont = FontFactory.getFont(FontFactory.HELVETICA, 9);
+            Font intestazioneTabellaFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9);
+
+            // === INTESTAZIONE ===
+            Paragraph titolo = new Paragraph(aziendaNome.toUpperCase(), titoloFont);
+            titolo.setAlignment(Element.ALIGN_CENTER);
+            document.add(titolo);
+
+            Paragraph sottoTitolo = new Paragraph("RAPPORTO DI LAVORO OFFICINA", sottoTitoloFont);
+            sottoTitolo.setAlignment(Element.ALIGN_CENTER);
+            document.add(sottoTitolo);
+
+            document.add(Chunk.NEWLINE);
+
+            Paragraph dataParagrafo = new Paragraph(
+                    localDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + " - Report giornaliero",
+                    testoFont
+            );
+            dataParagrafo.setAlignment(Element.ALIGN_CENTER);
+            document.add(dataParagrafo);
+
+            document.add(Chunk.NEWLINE);
+
+            // === TABELLA PRINCIPALE ===
+            PdfPTable table = new PdfPTable(6);
+            table.setWidthPercentage(100);
+            table.setWidths(new float[]{1.5f, 2.5f, 4f, 2f, 2f, 2.5f});
+
+            // Intestazioni tabella
+            String[] headers = {
+                    "Rif. Disegno", "Tipologia Lavoro Svolto", "Cod. Operatore",
+                    "Iniziato", "Finito", "Rif. Cliente"
+            };
+
+            for (String h : headers) {
+                PdfPCell cell = new PdfPCell(new Phrase(h, intestazioneTabellaFont));
+                cell.setBackgroundColor(Color.LIGHT_GRAY);
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setPadding(5);
+                table.addCell(cell);
+            }
+
+            // === RIGHE DATI ===
+            for (Utente utente : utenti) {
+                int i = 1;
+                List<Assegnazione> assegnazioni = assegnazioneRepository
+                        .findVisibleByUtenteIdAndAssegnazioneAtBetween(utente.getId(), startOfDay, endOfDay);
+
+                for (Assegnazione a : assegnazioni) {
+                    String rifDisegno = (a.getCommessa() != null && a.getCommessa().getCodice() != null)
+                            ? a.getCommessa().getCodice()
+                            : "-";
+                    String tipologiaLavoro = (a.getCommessa() != null ? a.getCommessa().getDescrizione() : "")
+                            + (a.getNote() != null ? " - " + a.getNote() : "");
+                    String codOperatore = utente.getNome() + " " + utente.getCognome() + " " + i;
+                    String iniziato = (a.getStartAt() != null)
+                            ? a.getStartAt().format(DateTimeFormatter.ofPattern("HH:mm"))
+                            : "-";
+                    String finito = (a.getEndAt() != null)
+                            ? a.getEndAt().format(DateTimeFormatter.ofPattern("HH:mm"))
+                            : "-";
+                    String rifCliente = (a.getCliente() != null ? a.getCliente().getNome() : "-");
+
+                    addCell(table, rifDisegno, testoFont);
+                    addCell(table, tipologiaLavoro, testoFont);
+                    addCell(table, codOperatore, testoFont);
+                    addCell(table, iniziato, testoFont);
+                    addCell(table, finito, testoFont);
+                    addCell(table, rifCliente, testoFont);
+
+                    i++;
+                }
+            }
+
+            document.add(table);
+            document.close();
+            writer.close();
+
+            return out.toByteArray();
+
+        } catch (Exception e) {
+            throw new RuntimeException("Errore durante la generazione del PDF: " + e.getMessage(), e);
+        }
+    }
+
+    // === Metodo di supporto per le celle ===
+    private void addCell(PdfPTable table, String value, Font font) {
+        PdfPCell cell = new PdfPCell(new Phrase(value, font));
+        cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        cell.setPadding(4);
+        table.addCell(cell);
+    }
+
+
+
 }
