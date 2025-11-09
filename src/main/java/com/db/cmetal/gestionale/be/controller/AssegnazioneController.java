@@ -1,13 +1,26 @@
 package com.db.cmetal.gestionale.be.controller;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.db.cmetal.gestionale.be.dto.AssegnazioneDto;
+import com.db.cmetal.gestionale.be.entity.Allegato;
 import com.db.cmetal.gestionale.be.entity.Assegnazione;
 import com.db.cmetal.gestionale.be.entity.Utente;
 import com.db.cmetal.gestionale.be.service.AssegnazioneService;
@@ -21,15 +34,15 @@ public class AssegnazioneController {
 
     private final AssegnazioneService assegnazioneService;
 
-    @GetMapping
-    public List<Assegnazione> getAll() {
-        return assegnazioneService.getAll();
-    }
+	@GetMapping
+	public List<Assegnazione> getFiltered(@RequestParam(required = true) Long utenteId, @RequestParam(required = true) String date) {
+		LocalDate localDate = LocalDate.parse(date);
+		if (utenteId != null) {
+			return assegnazioneService.getByUtenteAndData(utenteId, localDate);
+		}
+		return null;
+	}
 
-    @GetMapping("/utente/{utenteId}/data/{data}")
-    public List<Assegnazione> getByUtenteAndData(@PathVariable Long utenteId, @PathVariable String data) {
-        return assegnazioneService.getByUtenteAndData(utenteId, java.time.LocalDate.parse(data));
-    }
 
     @PostMapping
     public Assegnazione create(@RequestBody AssegnazioneDto dto) {
@@ -46,5 +59,29 @@ public class AssegnazioneController {
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
         assegnazioneService.softDelete(id);
+    }
+    
+    @PutMapping("/{id}/start")
+    public Assegnazione startAssegnazione(@PathVariable Long id) {
+        Utente utenteCorrente = (Utente) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return assegnazioneService.startAssegnazione(id, utenteCorrente.getId());
+    }
+
+    @PutMapping("/{id}/end")
+    public Assegnazione endAssegnazione(@PathVariable Long id) {
+        Utente utenteCorrente = (Utente) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return assegnazioneService.endAssegnazione(id, utenteCorrente.getId());
+    }
+    
+    @PostMapping("/{id}/upload-foto")
+    public Allegato uploadFoto(@PathVariable Long id, @RequestPart("file") MultipartFile file) throws Exception {
+        Utente utenteCorrente = (Utente) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return assegnazioneService.uploadFoto(id, file, utenteCorrente.getId());
+    }
+
+    @GetMapping("/{id}/foto")
+    public ResponseEntity<byte[]> getFoto(@PathVariable Long id) throws Exception {
+        return assegnazioneService.getFotoFile(id)
+                .orElse(ResponseEntity.notFound().build());
     }
 }

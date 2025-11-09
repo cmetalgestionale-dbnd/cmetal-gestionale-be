@@ -9,7 +9,10 @@ import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Object;
 
 @Slf4j
 @Service
@@ -74,5 +77,31 @@ public class SupabaseS3ServiceImpl implements SupabaseS3Service {
             log.error("Error downloading file '{}': {}", path, e.getMessage(), e);
             throw e;
         }
+    }
+    
+    @Override
+    public String getTotalStorageUsagePretty() {
+        try {
+            ListObjectsV2Request listReq = ListObjectsV2Request.builder()
+                    .bucket(bucket)
+                    .build();
+
+            ListObjectsV2Response listRes = s3Client.listObjectsV2(listReq);
+            long totalBytes = listRes.contents().stream()
+                    .mapToLong(S3Object::size)
+                    .sum();
+
+            return humanReadable(totalBytes);
+        } catch (Exception e) {
+            log.error("Errore nel calcolo uso storage: {}", e.getMessage());
+            return "Errore calcolo spazio";
+        }
+    }
+
+    private static String humanReadable(long bytes) {
+        if (bytes < 1024) return bytes + " B";
+        int exp = (int) (Math.log(bytes) / Math.log(1024));
+        String pre = "KMGTPE".charAt(exp - 1) + "";
+        return String.format("%.1f %sB", bytes / Math.pow(1024, exp), pre);
     }
 }

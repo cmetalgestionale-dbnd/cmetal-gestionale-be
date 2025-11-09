@@ -8,4 +8,5 @@ import com.db.cmetal.gestionale.be.entity.Cliente;
 @Repository
 public interface ClienteRepository extends JpaRepository<Cliente, Long> {
     List<Cliente> findByIsDeletedFalse();
+	List<Cliente> findByIsDeletedTrue();
 }

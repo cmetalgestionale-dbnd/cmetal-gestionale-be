@@ -29,6 +29,12 @@ public class UtenteController {
     public List<Utente> getAll() {
         return utenteService.findAll();
     }
+    
+    @GetMapping("/dipendenti")
+    public List<Utente> getDipendenti() {
+        return utenteService.findDipendenti();
+    }
+
 
     @GetMapping("/{id}")
     public ResponseEntity<Utente> getById(@PathVariable Long id) {

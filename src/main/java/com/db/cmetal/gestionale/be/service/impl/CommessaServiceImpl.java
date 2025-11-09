@@ -156,6 +156,16 @@ public class CommessaServiceImpl implements CommessaService {
     }
 
     private Allegato uploadAndSaveAllegato(MultipartFile file, Utente user) throws Exception {
+        // Controllo tipo file
+        if (!"application/pdf".equals(file.getContentType())) {
+            throw new IllegalArgumentException("Il file deve essere un PDF");
+        }
+
+        // Controllo dimensione (1 MB = 1_048_576 byte)
+        if (file.getSize() > 1_048_576) {
+            throw new IllegalArgumentException("Il file non può superare 1 MB");
+        }
+
         String path = "commesse/" + UUID.randomUUID() + "_" + file.getOriginalFilename();
         s3Service.uploadFile(file, path);
 
@@ -169,6 +179,7 @@ public class CommessaServiceImpl implements CommessaService {
 
         return allegatoRepository.save(allegato);
     }
+
 
     @Override
     public Optional<String> getAllegatoUrl(Long id) {

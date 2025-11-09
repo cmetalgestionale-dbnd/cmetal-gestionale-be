@@ -27,8 +27,8 @@ public class DatabaseKeepAliveServiceImpl implements DatabaseKeepAliveService {
         log.info("DatabaseKeepAliveService initialized.");
     }
 
-    @Scheduled(fixedRate = 432000000) // 5 giorni in ms
-    @Transactional(readOnly = true) // ✅ compatibile con pooler in modalità transaction
+    @Scheduled(fixedRate = 3600000) // 1h in ms
+    @Transactional(readOnly = true)
     @Override
     public void keepDatabaseAlive() {
         try {

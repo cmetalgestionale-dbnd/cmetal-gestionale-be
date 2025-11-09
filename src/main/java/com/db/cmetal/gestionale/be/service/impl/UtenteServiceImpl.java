@@ -84,4 +84,10 @@ public class UtenteServiceImpl implements UtenteService {
     private boolean isPasswordEncoded(String password) {
         return password != null && password.startsWith("$2");
     }
+
+    @Override
+    public List<Utente> findDipendenti() {
+        return repository.findByLivello(2); // 2 = DIPENDENTE
+    }
+    
 }

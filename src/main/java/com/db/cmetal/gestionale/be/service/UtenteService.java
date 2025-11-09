@@ -11,4 +11,5 @@ public interface UtenteService {
     List<Utente> findAll();
     Utente save(Utente utente);
     void deleteById(Long id);
+	List<Utente> findDipendenti();
 }
