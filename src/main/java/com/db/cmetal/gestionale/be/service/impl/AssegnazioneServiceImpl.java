@@ -4,7 +4,6 @@ import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
@@ -31,6 +30,8 @@ import com.db.cmetal.gestionale.be.repository.ImpostazioniRepository;
 import com.db.cmetal.gestionale.be.repository.UtenteRepository;
 import com.db.cmetal.gestionale.be.service.AssegnazioneService;
 import com.db.cmetal.gestionale.be.service.SupabaseS3Service;
+import com.db.cmetal.gestionale.be.service.WebSocketService;
+import com.db.cmetal.gestionale.be.utils.Constants;
 import com.lowagie.text.Chunk;
 import com.lowagie.text.Document;
 import com.lowagie.text.Element;
@@ -60,6 +61,7 @@ public class AssegnazioneServiceImpl implements AssegnazioneService {
     private final AllegatoRepository allegatoRepository;
     private final ImpostazioniRepository impostazioniRepository;
     private final SupabaseS3Service s3Service;
+    private final WebSocketService wsService;
 
     @Override
     public List<Assegnazione> getAll() {
@@ -68,9 +70,9 @@ public class AssegnazioneServiceImpl implements AssegnazioneService {
 
     @Override
     public List<Assegnazione> getByUtenteAndData(Long utenteId, LocalDate data) {
-        OffsetDateTime startOfDay = data.atStartOfDay().atOffset(OffsetDateTime.now().getOffset());
-        OffsetDateTime endOfDay = data.plusDays(1).atStartOfDay().atOffset(OffsetDateTime.now().getOffset());
-        return assegnazioneRepository.findVisibleByUtenteIdAndAssegnazioneAtBetween(utenteId, startOfDay, endOfDay);
+    	LocalDateTime startOfDay = data.atStartOfDay();
+    	LocalDateTime endOfDay = data.plusDays(1).atStartOfDay();
+ return assegnazioneRepository.findVisibleByUtenteIdAndAssegnazioneAtBetween(utenteId, startOfDay, endOfDay);
     }
 
 
@@ -81,7 +83,7 @@ public class AssegnazioneServiceImpl implements AssegnazioneService {
     }
 
     @Override
-    public Assegnazione createFromDto(AssegnazioneDto dto, Long assegnatoDaId, OffsetDateTime assegnazioneAt) {
+    public Assegnazione createFromDto(AssegnazioneDto dto, Long assegnatoDaId, LocalDateTime assegnazioneAt) {
         Utente utente = utenteRepository.findById(dto.getUtenteId())
                 .orElseThrow(() -> new RuntimeException("Utente non trovato"));
         Commessa commessa = commessaRepository.findById(dto.getCommessaId())
@@ -98,10 +100,13 @@ public class AssegnazioneServiceImpl implements AssegnazioneService {
         a.setAssegnatoDa(assegnatoDa);
         a.setNote(dto.getNote());
         a.setAssegnazioneAt(assegnazioneAt);
-        a.setCreatedAt(OffsetDateTime.now());
-        a.setUpdatedAt(OffsetDateTime.now());
+        a.setCreatedAt(LocalDateTime.now());
+        a.setUpdatedAt(LocalDateTime.now());
         a.setIsDeleted(false);
-        return assegnazioneRepository.save(a);
+        
+        Assegnazione saved = assegnazioneRepository.save(a);
+        wsService.broadcast(Constants.MSG_REFRESH, null);
+        return saved;
     }
 
     @Override
@@ -115,17 +120,20 @@ public class AssegnazioneServiceImpl implements AssegnazioneService {
         existing.setCliente(clienteRepository.findById(dto.getClienteId())
                 .orElseThrow(() -> new RuntimeException("Cliente non trovato")));
         existing.setNote(dto.getNote());
-        existing.setUpdatedAt(OffsetDateTime.now());
+        existing.setUpdatedAt(LocalDateTime.now());
 
-        return assegnazioneRepository.save(existing);
+        assegnazioneRepository.save(existing);
+        wsService.broadcast(Constants.MSG_REFRESH, null);
+        return existing;
     }
 
     @Override
     public void softDelete(Long id) {
         Assegnazione a = getById(id);
         a.setIsDeleted(true);
-        a.setUpdatedAt(OffsetDateTime.now());
+        a.setUpdatedAt(LocalDateTime.now());
         assegnazioneRepository.save(a);
+        wsService.broadcast(Constants.MSG_REFRESH, null);
     }
     
     @Override
@@ -136,8 +144,10 @@ public class AssegnazioneServiceImpl implements AssegnazioneService {
         if (!a.getUtente().getId().equals(utenteId)) {
             throw new RuntimeException("Non autorizzato");
         }
-        a.setStartAt(OffsetDateTime.now());
-        return assegnazioneRepository.save(a);
+        a.setStartAt(LocalDateTime.now());
+        assegnazioneRepository.save(a);
+        wsService.broadcast(Constants.MSG_REFRESH, null);
+        return a;
     }
 
     @Override
@@ -147,8 +157,10 @@ public class AssegnazioneServiceImpl implements AssegnazioneService {
         if (!a.getUtente().getId().equals(utenteId)) {
             throw new RuntimeException("Non autorizzato");
         }
-        a.setEndAt(OffsetDateTime.now());
-        return assegnazioneRepository.save(a);
+        a.setEndAt(LocalDateTime.now());
+        assegnazioneRepository.save(a);
+        wsService.broadcast(Constants.MSG_REFRESH, null);
+        return a;
     }
     
     @Override
@@ -204,6 +216,7 @@ public class AssegnazioneServiceImpl implements AssegnazioneService {
         a.setFotoAllegato(saved);
         assegnazioneRepository.save(a);
 
+        wsService.broadcast(Constants.MSG_REFRESH, null);
         return saved;
     }
 
@@ -226,8 +239,8 @@ public class AssegnazioneServiceImpl implements AssegnazioneService {
     @Override
     public byte[] generaReportPdf(LocalDate localDate) {
         try {
-            OffsetDateTime startOfDay = localDate.atStartOfDay().atOffset(OffsetDateTime.now().getOffset());
-            OffsetDateTime endOfDay = localDate.plusDays(1).atStartOfDay().atOffset(OffsetDateTime.now().getOffset());
+        	LocalDateTime startOfDay = localDate.atStartOfDay();
+        	LocalDateTime endOfDay = localDate.plusDays(1).atStartOfDay();
 
             List<Utente> utenti = utenteRepository.findByLivello(2);
 

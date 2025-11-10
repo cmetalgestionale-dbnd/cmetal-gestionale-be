@@ -8,14 +8,18 @@ import org.springframework.stereotype.Service;
 import com.db.cmetal.gestionale.be.entity.Cliente;
 import com.db.cmetal.gestionale.be.repository.ClienteRepository;
 import com.db.cmetal.gestionale.be.service.ClienteService;
+import com.db.cmetal.gestionale.be.service.WebSocketService;
+import com.db.cmetal.gestionale.be.utils.Constants;
 
 @Service
 public class ClienteServiceImpl implements ClienteService {
 
     private final ClienteRepository repository;
+    private final WebSocketService wsService;
 
-    public ClienteServiceImpl(ClienteRepository repository) {
+    public ClienteServiceImpl(ClienteRepository repository, WebSocketService wsService) {
         this.repository = repository;
+		this.wsService = wsService;
     }
 
     @Override
@@ -33,7 +37,9 @@ public class ClienteServiceImpl implements ClienteService {
         if (cliente.getIsDeleted() == null) {
             cliente.setIsDeleted(false);
         }
-        return repository.save(cliente);
+        Cliente saved = repository.save(cliente);
+        wsService.broadcast(Constants.MSG_REFRESH, null);
+        return saved;
     }
 
     @Override
@@ -42,5 +48,6 @@ public class ClienteServiceImpl implements ClienteService {
             c.setIsDeleted(true);
             repository.save(c);
         });
+        wsService.broadcast(Constants.MSG_REFRESH, null);
     }
 }

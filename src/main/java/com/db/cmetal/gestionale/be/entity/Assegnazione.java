@@ -1,6 +1,6 @@
 package com.db.cmetal.gestionale.be.entity;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -41,13 +41,13 @@ public class Assegnazione {
     private Utente assegnatoDa;
 
     @Column(name = "assegnazione_at", nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
-    private OffsetDateTime assegnazioneAt;
+    private LocalDateTime assegnazioneAt;
 
     @Column(name = "start_at", columnDefinition = "TIMESTAMP WITH TIME ZONE")
-    private OffsetDateTime startAt;
+    private LocalDateTime startAt;
 
     @Column(name = "end_at", columnDefinition = "TIMESTAMP WITH TIME ZONE")
-    private OffsetDateTime endAt;
+    private LocalDateTime endAt;
 
     @ManyToOne
     @JoinColumn(name = "foto_allegato_id")
@@ -60,8 +60,8 @@ public class Assegnazione {
     private Boolean isDeleted = false;
 
     @Column(name = "created_at", columnDefinition = "TIMESTAMP WITH TIME ZONE")
-    private OffsetDateTime createdAt;
+    private LocalDateTime createdAt;
 
     @Column(name = "updated_at", columnDefinition = "TIMESTAMP WITH TIME ZONE")
-    private OffsetDateTime updatedAt;
+    private LocalDateTime updatedAt;
 }

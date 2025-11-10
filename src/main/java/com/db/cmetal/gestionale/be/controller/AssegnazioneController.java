@@ -1,7 +1,7 @@
 package com.db.cmetal.gestionale.be.controller;
 
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -47,7 +47,7 @@ public class AssegnazioneController {
     @PostMapping
     public Assegnazione create(@RequestBody AssegnazioneDto dto) {
         Utente assegnatoDa = (Utente) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        OffsetDateTime assegnazioneAt = OffsetDateTime.parse(dto.getAssegnazioneAt(), DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+        LocalDateTime assegnazioneAt = LocalDateTime.parse(dto.getAssegnazioneAt(), DateTimeFormatter.ISO_OFFSET_DATE_TIME);
         return assegnazioneService.createFromDto(dto, assegnatoDa.getId(), assegnazioneAt);
     }
 

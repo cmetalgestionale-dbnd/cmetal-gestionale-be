@@ -32,6 +32,8 @@ import com.db.cmetal.gestionale.be.repository.AllegatoRepository;
 import com.db.cmetal.gestionale.be.repository.CommessaRepository;
 import com.db.cmetal.gestionale.be.service.CommessaService;
 import com.db.cmetal.gestionale.be.service.SupabaseS3Service;
+import com.db.cmetal.gestionale.be.service.WebSocketService;
+import com.db.cmetal.gestionale.be.utils.Constants;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -42,14 +44,17 @@ public class CommessaServiceImpl implements CommessaService {
     private final CommessaRepository commessaRepository;
     private final AllegatoRepository allegatoRepository;
     private final SupabaseS3Service s3Service;
+    private final WebSocketService wsService;
     private static final long MAX_BYTES = 512L * 1024L; // 0.5 MB
 
     public CommessaServiceImpl(CommessaRepository commessaRepository, 
                                SupabaseS3Service s3Service, 
-                               AllegatoRepository allegatoRepository) {
+                               AllegatoRepository allegatoRepository, 
+                               WebSocketService wsService) {
         this.commessaRepository = commessaRepository;
         this.s3Service = s3Service;
         this.allegatoRepository = allegatoRepository;
+        this.wsService = wsService;
     }
 
     @Override
@@ -112,6 +117,7 @@ public class CommessaServiceImpl implements CommessaService {
             allegatoRepository.save(a);
         }
         commessaRepository.save(c);
+        wsService.broadcast(Constants.MSG_REFRESH, null);
     }
 
     @Override
@@ -125,6 +131,7 @@ public class CommessaServiceImpl implements CommessaService {
             allegatoRepository.save(a);
         }
         commessaRepository.save(c);
+        wsService.broadcast(Constants.MSG_REFRESH, null);
     }
 
     // LOGICA spostata dal controller
@@ -140,7 +147,9 @@ public class CommessaServiceImpl implements CommessaService {
             commessa.setPdfAllegato(allegato);
         }
 
-        return saveCommessa(commessa, user);
+        Commessa saved = saveCommessa(commessa, user);
+        wsService.broadcast(Constants.MSG_REFRESH, null);
+        return saved;
     }
 
     @Override
@@ -170,7 +179,9 @@ public class CommessaServiceImpl implements CommessaService {
             existing.setPdfAllegato(newA);
         }
 
-        return updateCommessa(id, existing);
+        Commessa updated = updateCommessa(id, existing);
+        wsService.broadcast(Constants.MSG_REFRESH, null);
+        return updated;
     }
 
     private Allegato uploadAndSaveAllegato(MultipartFile file, Utente user) throws Exception {

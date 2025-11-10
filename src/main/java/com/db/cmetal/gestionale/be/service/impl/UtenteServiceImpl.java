@@ -10,16 +10,20 @@ import org.springframework.stereotype.Service;
 import com.db.cmetal.gestionale.be.entity.Utente;
 import com.db.cmetal.gestionale.be.repository.UtenteRepository;
 import com.db.cmetal.gestionale.be.service.UtenteService;
+import com.db.cmetal.gestionale.be.service.WebSocketService;
+import com.db.cmetal.gestionale.be.utils.Constants;
 
 @Service
 public class UtenteServiceImpl implements UtenteService {
 
     private final UtenteRepository repository;
     private final PasswordEncoder passwordEncoder;
+    private final WebSocketService wsService;
 
-    public UtenteServiceImpl(UtenteRepository repository, PasswordEncoder passwordEncoder) {
+    public UtenteServiceImpl(UtenteRepository repository, PasswordEncoder passwordEncoder, WebSocketService wsService) {
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
+        this.wsService = wsService;
     }
 
     @Override
@@ -68,7 +72,9 @@ public class UtenteServiceImpl implements UtenteService {
         // Aggiorna sempre updatedAt
         utente.setUpdatedAt(now);
 
-        return repository.save(utente);
+        Utente saved = repository.save(utente);
+        wsService.broadcast(Constants.MSG_REFRESH, null);
+        return saved;
     }
 
     @Override
@@ -78,6 +84,7 @@ public class UtenteServiceImpl implements UtenteService {
             u.setAttivo(false); // opzionale, per sicurezza
             repository.save(u);
         });
+        wsService.broadcast(Constants.MSG_REFRESH, null);
     }
 
 

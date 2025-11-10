@@ -1,6 +1,6 @@
 package com.db.cmetal.gestionale.be.repository;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,15 +13,15 @@ public interface AssegnazioneRepository extends JpaRepository<Assegnazione, Long
     List<Assegnazione> findAllByIsDeletedFalse();
     List<Assegnazione> findByUtenteIdAndAssegnazioneAtBetweenAndIsDeletedFalse(
         Long utenteId,
-        OffsetDateTime start,
-        OffsetDateTime end
+        LocalDateTime start,
+        LocalDateTime end
     );
     List<Assegnazione> findByAssegnazioneAtBetweenAndIsDeletedFalse(
-    	    OffsetDateTime start,
-    	    OffsetDateTime end
+    	    LocalDateTime start,
+    	    LocalDateTime end
     	);
 	List<Assegnazione> findByUtenteIdAndIsDeletedFalse(Long utenteId);
-	List<Assegnazione> findByIsDeletedTrueOrAssegnazioneAtBefore(OffsetDateTime date);
+	List<Assegnazione> findByIsDeletedTrueOrAssegnazioneAtBefore(LocalDateTime date);
 	List<Assegnazione> findByUtenteId(Long id);
 	List<Assegnazione> findByCommessaId(Long id);
 	List<Assegnazione> findByClienteId(Long id);
@@ -35,8 +35,8 @@ public interface AssegnazioneRepository extends JpaRepository<Assegnazione, Long
 			      AND (a.commessa IS NULL OR a.commessa.isDeleted = false)
 			      AND (a.cliente IS NULL OR a.cliente.isDeleted = false)
 			      AND (a.utente IS NULL OR a.utente.isDeleted = false)
-			    ORDER BY a.assegnazioneAt DESC
+			    ORDER BY a.assegnazioneAt ASC
 			""")
 	List<Assegnazione> findVisibleByUtenteIdAndAssegnazioneAtBetween(@Param("utenteId") Long utenteId,
-			@Param("start") OffsetDateTime start, @Param("end") OffsetDateTime end);
+			@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 }

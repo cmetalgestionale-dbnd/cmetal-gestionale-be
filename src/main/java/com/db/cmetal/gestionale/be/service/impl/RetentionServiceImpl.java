@@ -1,6 +1,7 @@
 package com.db.cmetal.gestionale.be.service.impl;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -38,8 +39,8 @@ public class RetentionServiceImpl implements RetentionService {
     // Cancellazione hard assegnazioni (giornaliere)
     @Override
     public int cleanupAssegnazioni() {
-        OffsetDateTime cutoff = OffsetDateTime.now().toLocalDate().atStartOfDay().atOffset(OffsetDateTime.now().getOffset());
-        List<Assegnazione> toDelete = assegnazioneRepository
+    	LocalDateTime cutoff = LocalDate.now().atStartOfDay();
+    	List<Assegnazione> toDelete = assegnazioneRepository
                 .findByIsDeletedTrueOrAssegnazioneAtBefore(cutoff);
 
         int count = 0;
