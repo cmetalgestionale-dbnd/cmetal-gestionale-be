@@ -94,7 +94,7 @@ public class UtenteServiceImpl implements UtenteService {
 
     @Override
     public List<Utente> findDipendenti() {
-        return repository.findByLivello(2); // 2 = DIPENDENTE
+        return repository.findByLivelloAndIsDeletedFalse(2); // 2 = DIPENDENTE
     }
     
 }
