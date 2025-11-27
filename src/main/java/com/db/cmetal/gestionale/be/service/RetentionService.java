@@ -8,4 +8,5 @@ public interface RetentionService {
     int cleanupClienti();
     int cleanupUtenti();
     SpaceUsageResponse getCurrentSpaceUsage();
+	int cleanupMovimentiMagazzino();
 }

@@ -45,6 +45,11 @@ public class RetentionController {
             int count = retentionService.cleanupUtenti();
             report.append("- Utenze eliminate: ").append(count).append("\n");
         }
+        if (request.entities().contains("magazzino")) {
+            int count = retentionService.cleanupMovimentiMagazzino();
+            report.append("- Movimenti magazzino eliminati: ").append(count).append("\n");
+        }
+
 
         wsService.broadcast(Constants.BROADCAST, null);
         return report.toString();

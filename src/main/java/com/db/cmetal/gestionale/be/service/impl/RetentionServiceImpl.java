@@ -2,8 +2,11 @@ package com.db.cmetal.gestionale.be.service.impl;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +20,7 @@ import com.db.cmetal.gestionale.be.repository.AllegatoRepository;
 import com.db.cmetal.gestionale.be.repository.AssegnazioneRepository;
 import com.db.cmetal.gestionale.be.repository.ClienteRepository;
 import com.db.cmetal.gestionale.be.repository.CommessaRepository;
+import com.db.cmetal.gestionale.be.repository.InventarioMovimentoRepository;
 import com.db.cmetal.gestionale.be.repository.UtenteRepository;
 import com.db.cmetal.gestionale.be.service.RetentionService;
 import com.db.cmetal.gestionale.be.service.SupabaseS3Service;
@@ -35,6 +39,10 @@ public class RetentionServiceImpl implements RetentionService {
     private final AllegatoRepository allegatoRepository;
     private final SupabaseS3Service s3Service;
     private final JdbcTemplate jdbcTemplate;
+    
+    @Autowired
+    private InventarioMovimentoRepository inventarioMovimentoRepository;
+
 
     // Cancellazione hard assegnazioni (giornaliere)
     @Override
@@ -140,4 +148,18 @@ public class RetentionServiceImpl implements RetentionService {
 
         return new com.db.cmetal.gestionale.be.controller.RetentionController.SpaceUsageResponse(dbSize, storageSize);
     }
+    
+    @Override
+    public int cleanupMovimentiMagazzino() {
+        // cutoff = ieri alle 00:00
+        OffsetDateTime cutoff = LocalDate
+                .now()
+                .minusDays(1)
+                .atStartOfDay()
+                .atOffset(ZoneOffset.UTC);
+
+        // Ritorna numero righe eliminate
+        return inventarioMovimentoRepository.deleteByMovimentoAtBefore(cutoff);
+    }
+
 }
