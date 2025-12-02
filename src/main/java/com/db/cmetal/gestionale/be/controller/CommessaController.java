@@ -27,6 +27,16 @@ public class CommessaController {
     public List<Commessa> getAllCommesse() {
         return commessaService.getAllCommesse();
     }
+    
+    @GetMapping(value = "/existing")
+    public List<Commessa> getAllExistingCommesse() {
+        return commessaService.getAllExistingCommesse();
+    }
+    
+    @GetMapping(value = "/deleted")
+    public List<Commessa> getAllDeletedCommesse() {
+        return commessaService.getAllDeletedCommesse();
+    }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Commessa createCommessa(

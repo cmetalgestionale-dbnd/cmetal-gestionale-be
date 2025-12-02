@@ -50,4 +50,14 @@ public class ClienteServiceImpl implements ClienteService {
         });
         wsService.broadcast(Constants.MSG_REFRESH, null);
     }
+
+	@Override
+	public List<Cliente> getAllExistingClienti() {
+		return repository.findByIsDeletedFalse();
+	}
+
+	@Override
+	public List<Cliente> getAllDeletedClienti() {
+		return repository.findByIsDeletedTrue();
+	}
 }

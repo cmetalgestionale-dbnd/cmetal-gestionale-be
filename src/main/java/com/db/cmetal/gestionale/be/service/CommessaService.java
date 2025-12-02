@@ -24,4 +24,6 @@ public interface CommessaService {
 			throws Exception;
 	Optional<String> getAllegatoUrl(Long id);
 	Optional<ResponseEntity<byte[]>> getAllegatoFile(Long id) throws Exception;
+	List<Commessa> getAllExistingCommesse();
+	List<Commessa> getAllDeletedCommesse();
 }

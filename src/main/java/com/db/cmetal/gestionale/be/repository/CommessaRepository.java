@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface CommessaRepository extends JpaRepository<Commessa, Long> {
     Optional<Commessa> findByCodice(String codice);
 	List<Commessa> findByIsDeletedTrue();
+	List<Commessa> findByIsDeletedFalse();
 }

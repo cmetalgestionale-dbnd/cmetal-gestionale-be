@@ -70,6 +70,16 @@ public class CommessaServiceImpl implements CommessaService {
     public List<Commessa> getAllCommesse() {
         return commessaRepository.findAll();
     }
+    
+    @Override
+    public List<Commessa> getAllExistingCommesse() {
+        return commessaRepository.findByIsDeletedFalse();
+    }
+    
+    @Override
+    public List<Commessa> getAllDeletedCommesse() {
+        return commessaRepository.findByIsDeletedTrue();
+    }
 
     @Override
     public Optional<Commessa> getCommessaById(Long id) {

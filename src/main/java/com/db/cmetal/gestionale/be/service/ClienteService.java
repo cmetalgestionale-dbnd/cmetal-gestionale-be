@@ -10,4 +10,6 @@ public interface ClienteService {
     List<Cliente> findAll();
     Cliente save(Cliente cliente);
     void deleteById(Long id);
+	List<Cliente> getAllExistingClienti();
+	List<Cliente> getAllDeletedClienti();
 }
