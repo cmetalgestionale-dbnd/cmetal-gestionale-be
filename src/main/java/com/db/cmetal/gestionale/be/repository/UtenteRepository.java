@@ -10,5 +10,5 @@ import com.db.cmetal.gestionale.be.entity.Utente;
 public interface UtenteRepository extends JpaRepository<Utente, Long> {
     Optional<Utente> findByUsername(String username);
 	List<Utente> findByIsDeletedTrue();
-	List<Utente> findByLivelloAndIsDeletedFalse(Integer livello);
+	List<Utente> findByLivelloInAndIsDeletedFalse(List<Integer> livelli);
 }

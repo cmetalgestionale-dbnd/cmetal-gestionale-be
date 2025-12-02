@@ -242,7 +242,7 @@ public class AssegnazioneServiceImpl implements AssegnazioneService {
         	LocalDateTime startOfDay = localDate.atStartOfDay();
         	LocalDateTime endOfDay = localDate.plusDays(1).atStartOfDay();
 
-            List<Utente> utenti = utenteRepository.findByLivelloAndIsDeletedFalse(2);
+            List<Utente> utenti = utenteRepository.findByLivelloInAndIsDeletedFalse(List.of(1, 2));
 
             // Recupero impostazioni aziendali
             String aziendaNome = impostazioniRepository.findById("azienda_nome")
