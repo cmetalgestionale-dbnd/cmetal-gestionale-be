@@ -163,9 +163,9 @@ public class AssegnazioneServiceImpl implements AssegnazioneService {
     }
     
     @Override
-    public Allegato uploadFoto(Long assegnazioneId, MultipartFile file, Long utenteId) throws Exception {
+    public Allegato uploadFoto(Long assegnazioneId, MultipartFile file, Utente utente) throws Exception {
         Assegnazione a = getById(assegnazioneId);
-        if (!a.getUtente().getId().equals(utenteId)) {
+        if (utente.getLivello() == 2 && !a.getUtente().getId().equals(utente.getId())) {
             throw new RuntimeException("Non autorizzato a caricare foto per questa assegnazione");
         }
 
@@ -200,7 +200,7 @@ public class AssegnazioneServiceImpl implements AssegnazioneService {
         String path = "assegnazioni/" + UUID.randomUUID() + "_" + file.getOriginalFilename();
         s3Service.uploadFile(file, path);
 
-        Utente utente = utenteRepository.findById(utenteId)
+        Utente utenteDb = utenteRepository.findById(utente.getId())
                 .orElseThrow(() -> new RuntimeException("Utente non trovato"));
 
         Allegato allegato = new Allegato();
@@ -208,7 +208,7 @@ public class AssegnazioneServiceImpl implements AssegnazioneService {
         allegato.setTipoFile(file.getContentType());
         allegato.setStoragePath(path);
         allegato.setCreatedAt(LocalDateTime.now());
-        allegato.setCreatedBy(utente);
+        allegato.setCreatedBy(utenteDb);
         allegato.setIsDeleted(false);
 
         Allegato saved = allegatoRepository.save(allegato);

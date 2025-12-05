@@ -22,7 +22,7 @@ public interface AssegnazioneService {
     void softDelete(Long id);
 	Assegnazione startAssegnazione(Long id, Utente utenteCorrente);
 	Assegnazione endAssegnazione(Long id, Utente utenteCorrente);
-	Allegato uploadFoto(Long assegnazioneId, MultipartFile file, Long utenteId) throws Exception;
+	Allegato uploadFoto(Long assegnazioneId, MultipartFile file, Utente utenteCorrente) throws Exception;
     Optional<ResponseEntity<byte[]>> getFotoFile(Long assegnazioneId) throws Exception;
 	byte[] generaReportPdf(LocalDate localDate);
 }

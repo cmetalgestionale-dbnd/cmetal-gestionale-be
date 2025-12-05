@@ -76,7 +76,7 @@ public class AssegnazioneController {
     @PostMapping("/{id}/upload-foto")
     public Allegato uploadFoto(@PathVariable Long id, @RequestPart("file") MultipartFile file) throws Exception {
         Utente utenteCorrente = (Utente) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return assegnazioneService.uploadFoto(id, file, utenteCorrente.getId());
+        return assegnazioneService.uploadFoto(id, file, utenteCorrente);
     }
 
     @GetMapping("/{id}/foto")
