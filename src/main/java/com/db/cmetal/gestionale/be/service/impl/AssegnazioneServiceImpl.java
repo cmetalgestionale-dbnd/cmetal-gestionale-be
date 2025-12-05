@@ -137,11 +137,10 @@ public class AssegnazioneServiceImpl implements AssegnazioneService {
     }
     
     @Override
-    public Assegnazione startAssegnazione(Long id, Long utenteId) {
+    public Assegnazione startAssegnazione(Long id, Utente utente) {
         Assegnazione a = assegnazioneRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Assegnazione non trovata"));
-        // solo il dipendente assegnato può avviare
-        if (!a.getUtente().getId().equals(utenteId)) {
+        if (utente.getLivello() == 2 && !a.getUtente().getId().equals(utente.getId())) {
             throw new RuntimeException("Non autorizzato");
         }
         a.setStartAt(LocalDateTime.now());
@@ -151,10 +150,10 @@ public class AssegnazioneServiceImpl implements AssegnazioneService {
     }
 
     @Override
-    public Assegnazione endAssegnazione(Long id, Long utenteId) {
+    public Assegnazione endAssegnazione(Long id, Utente utente) {
         Assegnazione a = assegnazioneRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Assegnazione non trovata"));
-        if (!a.getUtente().getId().equals(utenteId)) {
+        if (utente.getLivello() == 2 && !a.getUtente().getId().equals(utente.getId())) {
             throw new RuntimeException("Non autorizzato");
         }
         a.setEndAt(LocalDateTime.now());

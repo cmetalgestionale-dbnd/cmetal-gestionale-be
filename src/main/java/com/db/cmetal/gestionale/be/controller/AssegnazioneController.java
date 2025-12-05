@@ -64,13 +64,13 @@ public class AssegnazioneController {
     @PutMapping("/{id}/start")
     public Assegnazione startAssegnazione(@PathVariable Long id) {
         Utente utenteCorrente = (Utente) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return assegnazioneService.startAssegnazione(id, utenteCorrente.getId());
+        return assegnazioneService.startAssegnazione(id, utenteCorrente);
     }
 
     @PutMapping("/{id}/end")
     public Assegnazione endAssegnazione(@PathVariable Long id) {
         Utente utenteCorrente = (Utente) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return assegnazioneService.endAssegnazione(id, utenteCorrente.getId());
+        return assegnazioneService.endAssegnazione(id, utenteCorrente);
     }
     
     @PostMapping("/{id}/upload-foto")
