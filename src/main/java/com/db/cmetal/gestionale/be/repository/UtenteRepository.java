@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.db.cmetal.gestionale.be.entity.Utente;
 
 public interface UtenteRepository extends JpaRepository<Utente, Long> {
-    Optional<Utente> findByUsername(String username);
+	Optional<Utente> findByUsername(String username);
 	List<Utente> findByIsDeletedTrue();
 	List<Utente> findByLivelloInAndIsDeletedFalse(List<Integer> livelli);
 }

@@ -85,22 +85,4 @@ public class AssegnazioneController {
                 .orElse(ResponseEntity.notFound().build());
     }
     
-    @GetMapping("/report/pdf")
-    public ResponseEntity<byte[]> generaReportPdf(@RequestParam(required = false) String data) throws Exception {
-        LocalDate localDate;
-
-        if (data != null && !data.isEmpty()) {
-            localDate = LocalDate.parse(data);
-        } else {
-            localDate = LocalDate.now();
-        }
-
-        byte[] pdfBytes = assegnazioneService.generaReportPdf(localDate);
-
-        return ResponseEntity.ok()
-                .header("Content-Disposition", "attachment; filename=report-assegnazioni-" + localDate + ".pdf")
-                .header("Content-Type", "application/pdf")
-                .body(pdfBytes);
-    }
-
 }

@@ -41,21 +41,22 @@ public class CommessaController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Commessa createCommessa(
             @RequestPart("commessa") CommessaDto dto,
-            @RequestPart(value = "file", required = false) MultipartFile file) throws Exception {
+            @RequestPart(value = "file", required = false) List<MultipartFile> files) throws Exception {
 
         Utente user = (Utente) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return commessaService.createCommessa(dto, file, user);
+        return commessaService.createCommessa(dto, files, user);
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Commessa updateCommessa(
             @PathVariable Long id,
             @RequestPart("commessa") CommessaDto dto,
-            @RequestPart(value = "file", required = false) MultipartFile file,
-            @RequestParam(value = "removeFile", required = false) Boolean removeFile) throws Exception {
+            @RequestPart(value = "file", required = false) List<MultipartFile> files,
+            @RequestParam(value = "removeFile", required = false) Boolean removeFile,
+            @RequestParam(value = "removeAllegatoIds", required = false) List<Long> removeAllegatoIds) throws Exception {
 
         Utente user = (Utente) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return commessaService.updateCommessaWithFile(id, dto, file, removeFile, user);
+        return commessaService.updateCommessaWithFile(id, dto, files, removeFile, removeAllegatoIds, user);
     }
 
     @DeleteMapping("/{id}")
@@ -80,6 +81,12 @@ public class CommessaController {
     @GetMapping("/{id}/allegato")
     public ResponseEntity<byte[]> getAllegato(@PathVariable Long id) throws Exception {
         return commessaService.getAllegatoFile(id)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/{id}/allegati/{allegatoId}")
+    public ResponseEntity<byte[]> getAllegatoById(@PathVariable Long id, @PathVariable Long allegatoId) throws Exception {
+        return commessaService.getAllegatoFile(id, allegatoId)
                 .orElse(ResponseEntity.notFound().build());
     }
 

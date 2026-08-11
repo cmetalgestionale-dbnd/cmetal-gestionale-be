@@ -4,7 +4,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -82,16 +84,13 @@ public class RetentionServiceImpl implements RetentionService {
             }
             cleanupAssegnazioni();
 
-            // Elimina pdf allegato (se presente)
-            Allegato allegato = c.getPdfAllegato();
-            if (allegato != null) {
-                try {
-                    s3Service.deleteFile(allegato.getStoragePath());
-                } catch (Exception e) {
-                    System.err.println("Errore cancellazione file PDF: " + e.getMessage());
+            Set<Long> allegatiEliminati = new HashSet<>();
+            if (c.getAllegati() != null) {
+                for (Allegato allegato : c.getAllegati()) {
+                    deleteAllegato(allegato, allegatiEliminati);
                 }
-                allegatoRepository.delete(allegato);
             }
+            deleteAllegato(c.getPdfAllegato(), allegatiEliminati);
 
             commessaRepository.delete(c);
             count++;
@@ -160,6 +159,19 @@ public class RetentionServiceImpl implements RetentionService {
 
         // Ritorna numero righe eliminate
         return inventarioMovimentoRepository.deleteByMovimentoAtBefore(cutoff);
+    }
+
+    private void deleteAllegato(Allegato allegato, Set<Long> allegatiEliminati) {
+        if (allegato == null || allegato.getId() == null || allegatiEliminati.contains(allegato.getId())) {
+            return;
+        }
+        try {
+            s3Service.deleteFile(allegato.getStoragePath());
+        } catch (Exception e) {
+            System.err.println("Errore cancellazione file PDF: " + e.getMessage());
+        }
+        allegatoRepository.delete(allegato);
+        allegatiEliminati.add(allegato.getId());
     }
 
 }

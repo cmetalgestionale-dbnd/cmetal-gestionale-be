@@ -35,6 +35,11 @@ public class UtenteController {
         return utenteService.findDipendenti();
     }
 
+    @GetMapping("/operativi")
+    public List<Utente> getOperativi() {
+        return utenteService.findDipendenti();
+    }
+
 
     @GetMapping("/{id}")
     public ResponseEntity<Utente> getById(@PathVariable Long id) {

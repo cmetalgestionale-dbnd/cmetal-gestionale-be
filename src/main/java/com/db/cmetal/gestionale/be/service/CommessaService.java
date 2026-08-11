@@ -18,12 +18,14 @@ public interface CommessaService {
     Commessa updateCommessa(Long id, Commessa commessa);
     void deleteCommessa(Long id);
 	void hardDeleteCommessa(Long id);
-	void restoreCommessa(Long id);
-	Commessa createCommessa(CommessaDto dto, MultipartFile file, Utente user) throws Exception;
-	Commessa updateCommessaWithFile(Long id, CommessaDto dto, MultipartFile file, Boolean removeFile, Utente user)
-			throws Exception;
-	Optional<String> getAllegatoUrl(Long id);
-	Optional<ResponseEntity<byte[]>> getAllegatoFile(Long id) throws Exception;
-	List<Commessa> getAllExistingCommesse();
-	List<Commessa> getAllDeletedCommesse();
-}
+		void restoreCommessa(Long id);
+		Commessa createCommessa(CommessaDto dto, List<MultipartFile> files, Utente user) throws Exception;
+		Commessa updateCommessaWithFile(Long id, CommessaDto dto, List<MultipartFile> files, Boolean removeFile,
+				List<Long> removeAllegatoIds, Utente user)
+				throws Exception;
+		Optional<String> getAllegatoUrl(Long id);
+		Optional<ResponseEntity<byte[]>> getAllegatoFile(Long id) throws Exception;
+		Optional<ResponseEntity<byte[]>> getAllegatoFile(Long commessaId, Long allegatoId) throws Exception;
+		List<Commessa> getAllExistingCommesse();
+		List<Commessa> getAllDeletedCommesse();
+	}

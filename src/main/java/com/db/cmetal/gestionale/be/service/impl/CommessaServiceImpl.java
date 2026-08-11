@@ -8,8 +8,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.pdfbox.cos.COSName;
@@ -45,7 +48,8 @@ public class CommessaServiceImpl implements CommessaService {
     private final AllegatoRepository allegatoRepository;
     private final SupabaseS3Service s3Service;
     private final WebSocketService wsService;
-    private static final long MAX_BYTES = 512L * 1024L; // 0.5 MB
+    private static final long MAX_BYTES = 1_048_576L; // 1 MB
+    private static final int MAX_ALLEGATI_COMMESSA = 10;
 
     public CommessaServiceImpl(CommessaRepository commessaRepository, 
                                SupabaseS3Service s3Service, 
@@ -94,13 +98,14 @@ public class CommessaServiceImpl implements CommessaService {
     @Override
     public Commessa updateCommessa(Long id, Commessa commessa) {
         return commessaRepository.findById(id)
-                .map(existing -> {
-                    existing.setCodice(commessa.getCodice());
-                    existing.setDescrizione(commessa.getDescrizione());
-                    existing.setPdfAllegato(commessa.getPdfAllegato());
-                    existing.setIsDeleted(commessa.getIsDeleted());
-                    existing.setCreatedBy(commessa.getCreatedBy());
-                    existing.setCreatedAt(commessa.getCreatedAt());
+	                .map(existing -> {
+	                    existing.setCodice(commessa.getCodice());
+	                    existing.setDescrizione(commessa.getDescrizione());
+	                    existing.setPdfAllegato(commessa.getPdfAllegato());
+	                    existing.setAllegati(commessa.getAllegati());
+	                    existing.setIsDeleted(commessa.getIsDeleted());
+	                    existing.setCreatedBy(commessa.getCreatedBy());
+	                    existing.setCreatedAt(commessa.getCreatedAt());
                     return commessaRepository.save(existing);
                 })
                 .orElseThrow(() -> new RuntimeException("Commessa non trovata con id: " + id));
@@ -109,9 +114,17 @@ public class CommessaServiceImpl implements CommessaService {
     @Override
     public void hardDeleteCommessa(Long id) {
         Commessa c = commessaRepository.findById(id).orElseThrow();
+        Set<Long> deletedAllegatoIds = new HashSet<>();
         if (c.getPdfAllegato() != null) {
             s3Service.deleteFile(c.getPdfAllegato().getStoragePath());
             allegatoRepository.delete(c.getPdfAllegato());
+            deletedAllegatoIds.add(c.getPdfAllegato().getId());
+        }
+        for (Allegato allegato : c.getAllegati()) {
+            if (deletedAllegatoIds.add(allegato.getId())) {
+                s3Service.deleteFile(allegato.getStoragePath());
+                allegatoRepository.delete(allegato);
+            }
         }
         commessaRepository.delete(c);
     }
@@ -121,40 +134,56 @@ public class CommessaServiceImpl implements CommessaService {
         Commessa c = commessaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Commessa non trovata"));
         c.setIsDeleted(true);
-        if (c.getPdfAllegato() != null) {
-            Allegato a = c.getPdfAllegato();
-            a.setIsDeleted(true);
-            allegatoRepository.save(a);
-        }
-        commessaRepository.save(c);
-        wsService.broadcast(Constants.MSG_REFRESH, null);
-    }
+	        if (c.getPdfAllegato() != null) {
+	            Allegato a = c.getPdfAllegato();
+	            a.setIsDeleted(true);
+	            allegatoRepository.save(a);
+	        }
+	        for (Allegato a : c.getAllegati()) {
+	            a.setIsDeleted(true);
+	            allegatoRepository.save(a);
+	        }
+	        commessaRepository.save(c);
+	        wsService.broadcast(Constants.MSG_REFRESH, null);
+	    }
 
     @Override
     public void restoreCommessa(Long id) {
         Commessa c = commessaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Commessa non trovata"));
         c.setIsDeleted(false);
-        if (c.getPdfAllegato() != null) {
-            Allegato a = c.getPdfAllegato();
-            a.setIsDeleted(false);
-            allegatoRepository.save(a);
-        }
-        commessaRepository.save(c);
-        wsService.broadcast(Constants.MSG_REFRESH, null);
-    }
+	        if (c.getPdfAllegato() != null) {
+	            Allegato a = c.getPdfAllegato();
+	            a.setIsDeleted(false);
+	            allegatoRepository.save(a);
+	        }
+	        for (Allegato a : c.getAllegati()) {
+	            a.setIsDeleted(false);
+	            allegatoRepository.save(a);
+	        }
+	        commessaRepository.save(c);
+	        wsService.broadcast(Constants.MSG_REFRESH, null);
+	    }
 
     // LOGICA spostata dal controller
 
     @Override
-    public Commessa createCommessa(CommessaDto dto, MultipartFile file, Utente user) throws Exception {
+    public Commessa createCommessa(CommessaDto dto, List<MultipartFile> files, Utente user) throws Exception {
         Commessa commessa = new Commessa();
         commessa.setCodice(dto.codice);
         commessa.setDescrizione(dto.descrizione);
 
-        if (file != null && !file.isEmpty()) {
-            Allegato allegato = uploadAndSaveAllegato(file, user);
-            commessa.setPdfAllegato(allegato);
+        List<MultipartFile> validFiles = normalizeFiles(files);
+        if (validFiles.size() > MAX_ALLEGATI_COMMESSA) {
+            throw new IllegalArgumentException("Puoi allegare al massimo 10 PDF per commessa");
+        }
+        List<Allegato> allegati = new ArrayList<>();
+        for (MultipartFile file : validFiles) {
+            allegati.add(uploadAndSaveAllegato(file, user));
+        }
+        commessa.setAllegati(allegati);
+        if (!allegati.isEmpty()) {
+            commessa.setPdfAllegato(allegati.get(0));
         }
 
         Commessa saved = saveCommessa(commessa, user);
@@ -163,35 +192,60 @@ public class CommessaServiceImpl implements CommessaService {
     }
 
     @Override
-    public Commessa updateCommessaWithFile(Long id, CommessaDto dto, MultipartFile file, Boolean removeFile, Utente user) throws Exception {
+    public Commessa updateCommessaWithFile(Long id, CommessaDto dto, List<MultipartFile> files, Boolean removeFile,
+            List<Long> removeAllegatoIds, Utente user) throws Exception {
         Commessa existing = getCommessaById(id)
                 .orElseThrow(() -> new RuntimeException("Commessa non trovata"));
 
         existing.setCodice(dto.codice);
         existing.setDescrizione(dto.descrizione);
-
-        // Gestione rimozione allegato
-        if (Boolean.TRUE.equals(removeFile) && existing.getPdfAllegato() != null) {
-            Allegato a = existing.getPdfAllegato();
-            a.setIsDeleted(true);
-            allegatoRepository.save(a);
-            existing.setPdfAllegato(null);
+        if (existing.getAllegati() == null) {
+            existing.setAllegati(new ArrayList<>());
         }
 
-        // Gestione sostituzione allegato
-        if (file != null && !file.isEmpty()) {
-            if (existing.getPdfAllegato() != null) {
-                Allegato old = existing.getPdfAllegato();
-                old.setIsDeleted(true);
-                allegatoRepository.save(old);
-            }
-            Allegato newA = uploadAndSaveAllegato(file, user);
-            existing.setPdfAllegato(newA);
+        if (existing.getAllegati().isEmpty() && existing.getPdfAllegato() != null) {
+            existing.getAllegati().add(existing.getPdfAllegato());
         }
+
+        if (Boolean.TRUE.equals(removeFile)) {
+            removeAllegati(existing, existing.getAllegati().stream().map(Allegato::getId).toList());
+        }
+        if (removeAllegatoIds != null && !removeAllegatoIds.isEmpty()) {
+            removeAllegati(existing, removeAllegatoIds);
+        }
+
+        List<MultipartFile> validFiles = normalizeFiles(files);
+        if (existing.getAllegati().size() + validFiles.size() > MAX_ALLEGATI_COMMESSA) {
+            throw new IllegalArgumentException("Puoi allegare al massimo 10 PDF per commessa");
+        }
+        for (MultipartFile file : validFiles) {
+            existing.getAllegati().add(uploadAndSaveAllegato(file, user));
+        }
+        existing.setPdfAllegato(existing.getAllegati().isEmpty() ? null : existing.getAllegati().get(0));
 
         Commessa updated = updateCommessa(id, existing);
         wsService.broadcast(Constants.MSG_REFRESH, null);
         return updated;
+    }
+
+    private List<MultipartFile> normalizeFiles(List<MultipartFile> files) {
+        if (files == null) {
+            return List.of();
+        }
+        return files.stream()
+                .filter(file -> file != null && !file.isEmpty())
+                .toList();
+    }
+
+    private void removeAllegati(Commessa commessa, List<Long> allegatoIds) {
+        List<Allegato> toRemove = commessa.getAllegati().stream()
+                .filter(a -> allegatoIds.contains(a.getId()))
+                .toList();
+        for (Allegato allegato : toRemove) {
+            allegato.setIsDeleted(true);
+            allegatoRepository.save(allegato);
+        }
+        commessa.getAllegati().removeAll(toRemove);
     }
 
     private Allegato uploadAndSaveAllegato(MultipartFile file, Utente user) throws Exception {
@@ -208,11 +262,11 @@ public class CommessaServiceImpl implements CommessaService {
         byte[] originalBytes = file.getBytes();
         byte[] toUploadBytes = originalBytes;
 
-        // Se supera 0.5 MB, tentiamo la compressione iterativa
+        // Se supera 1 MB, tentiamo la compressione iterativa.
         if (originalBytes.length > MAX_BYTES) {
             byte[] compressed = compressPdfToLimit(originalBytes, MAX_BYTES);
             if (compressed == null) {
-                throw new IllegalArgumentException("Il file PDF è troppo grande anche dopo la compressione (max 0.5 MB)");
+                throw new IllegalArgumentException("Il file PDF è troppo grande anche dopo la compressione (max 1 MB)");
             }
             toUploadBytes = compressed;
         }
@@ -246,8 +300,8 @@ public class CommessaServiceImpl implements CommessaService {
      */
     private byte[] compressPdfToLimit(byte[] inputPdf, long maxBytes) {
         // Strategia: proviamo combinazioni di scale/quality
-        float[] qualities = new float[] { 0.75f, 0.6f, 0.5f, 0.4f };
-        double[] scales = new double[] { 1.0, 0.9, 0.8, 0.7 };
+        float[] qualities = new float[] { 0.75f, 0.6f, 0.5f, 0.4f, 0.3f, 0.25f };
+        double[] scales = new double[] { 1.0, 0.9, 0.8, 0.7, 0.55, 0.4 };
 
         for (double scale : scales) {
             for (float quality : qualities) {
@@ -353,9 +407,9 @@ public class CommessaServiceImpl implements CommessaService {
     @Override
     public Optional<ResponseEntity<byte[]>> getAllegatoFile(Long id) throws Exception {
         return getCommessaById(id)
-                .filter(c -> c.getPdfAllegato() != null)
+                .filter(c -> c.getPdfAllegato() != null || (c.getAllegati() != null && !c.getAllegati().isEmpty()))
                 .map(c -> {
-                    Allegato allegato = c.getPdfAllegato();
+                    Allegato allegato = c.getPdfAllegato() != null ? c.getPdfAllegato() : c.getAllegati().get(0);
                     try {
                         byte[] fileBytes = s3Service.downloadFile(allegato.getStoragePath());
                         return ResponseEntity.ok()
@@ -364,6 +418,25 @@ public class CommessaServiceImpl implements CommessaService {
                                 .body(fileBytes);
                     } catch (Exception e) {
                         throw new RuntimeException("Errore durante il download del file", e);
+                    }
+                });
+    }
+
+    @Override
+    public Optional<ResponseEntity<byte[]>> getAllegatoFile(Long commessaId, Long allegatoId) throws Exception {
+        return getCommessaById(commessaId)
+                .flatMap(c -> c.getAllegati().stream()
+                        .filter(a -> a.getId().equals(allegatoId))
+                        .findFirst())
+                .map(allegato -> {
+                    try {
+                        byte[] fileBytes = s3Service.downloadFile(allegato.getStoragePath());
+                        return ResponseEntity.ok()
+                                .header("Content-Disposition", "inline; filename=\"" + allegato.getNomeFile() + "\"")
+                                .contentType(MediaType.parseMediaType(allegato.getTipoFile()))
+                                .body(fileBytes);
+                    } catch (Exception e) {
+                        throw new RuntimeException("Errore download allegato", e);
                     }
                 });
     }
